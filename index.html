@@ -378,6 +378,29 @@ const CFGK = "lagerboard:sync";
 const getCfg = () => { try { return JSON.parse(localStorage.getItem(CFGK) || "null"); } catch (e) { return null; } };
 const setCfg = (c) => c ? localStorage.setItem(CFGK, JSON.stringify(c)) : localStorage.removeItem(CFGK);
 
+/* Große Listen passen sonst nicht in das Speicherlimit (100 KB bei jsonbin).
+   Gepackt schrumpfen 3000 Zeilen von rund 540 KB auf etwa 17 KB. */
+const canZip = typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined";
+
+async function zip(str) {
+  const cs = new CompressionStream("gzip");
+  const stream = new Blob([new TextEncoder().encode(str)]).stream().pipeThrough(cs);
+  const buf = new Uint8Array(await new Response(stream).arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < buf.length; i += 8192)
+    bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+  return btoa(bin);
+}
+
+async function unzip64(b64) {
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  const ds = new DecompressionStream("gzip");
+  const stream = new Blob([buf]).stream().pipeThrough(ds);
+  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+}
+
 const store = {
   async get() {
     const c = getCfg();
@@ -390,15 +413,22 @@ const store = {
       { headers: { "X-Master-Key": c.key, "X-Bin-Meta": "false" } });
     if (!r.ok) throw new Error("Sync " + r.status);
     const j = await r.json();
-    return j && j.value ? JSON.parse(j.value) : null;
+    if (!j) return null;
+    if (j.gz) return JSON.parse(await unzip64(j.gz));   /* gepackt */
+    if (j.value) return JSON.parse(j.value);            /* alte Fassung */
+    return null;
   },
   async set(obj) {
     const c = getCfg(), s = JSON.stringify(obj);
     if (!c) { localStorage.setItem(KEY, s); return; }
+    const body = canZip ? { gz: await zip(s) } : { value: s };
+    const payload = JSON.stringify(body);
+    if (payload.length > 95000)
+      throw new Error("zu groß (" + Math.round(payload.length / 1024) + " KB)");
     const r = await fetch("https://api.jsonbin.io/v3/b/" + c.bin, {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Master-Key": c.key },
-      body: JSON.stringify({ value: s })
+      body: payload
     });
     if (!r.ok) throw new Error("Sync " + r.status);
   }
@@ -420,6 +450,7 @@ const START = () => ({
     ({ id: uid(), name: "Fahrer " + (i + 1), area: "", note: "", at: 0 })),
   projects: [],
   kpi: null,
+  schott: [],
   rev: 0
 });
 
@@ -430,9 +461,11 @@ const S = {
   data: START(),
   tab: "apps",
   fArt: "", fStatus: "",
+  fScho: "",
   now: Date.now(),
   lastPull: 0,
   sync: "idle",
+  err: "",
   loaded: false,
   imp: null,     /* laufender Lagerort-Import */
   kimp: null,    /* laufender KPI-Import */
@@ -468,8 +501,8 @@ function commit(fn) {
   render();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    try { await store.set(S.data); S.sync = "idle"; }
-    catch (e) { S.sync = "error"; }
+    try { await store.set(S.data); S.sync = "idle"; S.err = ""; }
+    catch (e) { S.sync = "error"; S.err = e.message; }
     paintHeader();
   }, 400);
 }
@@ -483,6 +516,7 @@ const TABS = [
   { id: "crew", label: "Stapler",               ico: "truck" },
   { id: "proj", label: "Spezialprojekte",       ico: "target" },
   { id: "kpi",  label: "KPI-SF",                ico: "chart" },
+  { id: "scho", label: "Schott-Umlagerungen",   ico: "sheet" },
   { id: "cfg",  label: "Bereiche",              ico: "gear" }
 ];
 
@@ -494,6 +528,9 @@ function paintHeader() {
     : S.sync === "error" ? ico("alert") + "<span>Fehler</span>"
     : '<span class="dot" style="background:' + (on ? "var(--em)" : "var(--am)") + '"></span>' +
       "<span>" + (on ? "Geteilt" : "Lokal") + "</span>";
+  el.title = S.sync === "error" ? ("Speichern fehlgeschlagen: " + (S.err || "unbekannt") +
+    " — antippen für neuen Versuch") : "Antippen zum Aktualisieren";
+  el.style.color = S.sync === "error" ? "var(--ro)" : "";
   const sub = $("#hsub");
   if (sub) {
     const act = S.data.drivers.filter((d) => d.area).length;
@@ -523,12 +560,27 @@ function render() {
     '<main><div class="wrap" id="body"></div></main>';
 
   const b = $("#body");
-  if (S.tab === "apps") b.innerHTML = viewApps();
-  else if (S.tab === "free") b.innerHTML = viewFree();
-  else if (S.tab === "crew") b.innerHTML = viewCrew();
-  else if (S.tab === "proj") b.innerHTML = viewProj();
-  else if (S.tab === "kpi")  b.innerHTML = viewKpi();
-  else b.innerHTML = viewCfg();
+  if (S.sync === "error" && S.err) {
+    const big = S.err.indexOf("zu groß") > -1;
+    b.innerHTML = '<div class="banner warn" style="margin-bottom:12px;border-color:rgba(251,113,133,.5);' +
+      'background:rgba(251,113,133,.08)">' + ico("alert") +
+      '<div style="flex:1;min-width:0"><p style="margin:0;font-size:14px;color:#fecdd3">' +
+      (big ? "Daten zu groß für den Sync-Speicher (" + esc(S.err) + ")."
+           : "Speichern fehlgeschlagen: " + esc(S.err) + ".") + '</p>' +
+      '<p class="tiny" style="margin:2px 0 0">' +
+      (big ? "Die Daten sind auf diesem Gerät sicher. Weniger Zeilen importieren oder nicht benötigte löschen."
+           : "Die Daten sind auf diesem Gerät sicher. Oben rechts antippen für einen neuen Versuch.") +
+      '</p></div></div>';
+  } else b.innerHTML = "";
+  const inner = document.createElement("div");
+  if (S.tab === "apps") inner.innerHTML = viewApps();
+  else if (S.tab === "free") inner.innerHTML = viewFree();
+  else if (S.tab === "crew") inner.innerHTML = viewCrew();
+  else if (S.tab === "proj") inner.innerHTML = viewProj();
+  else if (S.tab === "kpi")  inner.innerHTML = viewKpi();
+  else if (S.tab === "scho") inner.innerHTML = viewSchott();
+  else inner.innerHTML = viewCfg();
+  b.appendChild(inner);
   paintHeader();
 }
 
@@ -904,6 +956,73 @@ function kpiBuild() {
     list, total: list.reduce((s, x) => s + x.sum, 0) };
 }
 
+/* ---------------- Reiter: Schott-Umlagerungen ---------------- */
+function viewSchott() {
+  const list = S.data.schott || [];
+  const done = list.filter((r) => r.aus);
+  const open = list.filter((r) => !r.aus);
+  const pal = (rs) => rs.reduce((s, r) => s + num(r.pal), 0);
+
+  const shown = S.fScho === "offen" ? open : S.fScho === "fertig" ? done : list;
+
+  const tiles =
+    '<button class="tile ' + (S.fScho === "" ? "on" : "") + '" data-fscho="">' +
+      '<b>' + list.length + '</b><span>Einträge gesamt</span></button>' +
+    '<button class="tile ' + (S.fScho === "offen" ? "on" : "") + '" data-fscho="offen">' +
+      '<b>' + open.length + '</b><span><i class="dot" style="background:var(--am)"></i>Offen</span></button>' +
+    '<button class="tile ' + (S.fScho === "fertig" ? "on" : "") + '" data-fscho="fertig">' +
+      '<b>' + done.length + '</b><span><i class="dot" style="background:var(--em)"></i>Ausgelagert</span></button>' +
+    '<div class="tile"><b>' + de(pal(list)) + '</b><span>Paletten gesamt</span></div>';
+
+  /* Aufteilung nach Bereich in GiGu */
+  const areas = [...new Set(list.map((r) => (r.gigu || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "de"));
+  const byArea = areas.length ? '<section class="card">' +
+    '<div class="hd"><span class="up">Paletten nach Bereich in GiGu</span></div><div class="divide">' +
+    areas.map((a) => {
+      const rs = list.filter((r) => (r.gigu || "").trim() === a);
+      const o = rs.filter((r) => !r.aus).length;
+      return '<div class="row pad" style="padding:9px 12px">' +
+        '<span style="flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;' +
+          'white-space:nowrap">' + esc(a) + '</span>' +
+        '<span class="tiny">' + rs.length + " Einträge" + (o ? " · " + o + " offen" : "") + '</span>' +
+        '<span class="num" style="font-weight:600;width:64px;text-align:right">' + de(pal(rs)) + '</span>' +
+        '</div>';
+    }).join("") + '</div></section>' : "";
+
+  const rows = shown.map((r) =>
+    '<tr>' +
+      '<td><input class="inl" style="font-weight:500" value="' + esc(r.art) +
+        '" placeholder="Artikel" data-scho="' + r.id + '" data-k="art" /></td>' +
+      '<td><input class="inl num" value="' + esc(r.ort) +
+        '" placeholder="Lagerort" data-scho="' + r.id + '" data-k="ort" /></td>' +
+      '<td><input class="inl" style="color:var(--dim)" value="' + esc(r.gigu) +
+        '" placeholder="Bereich" data-scho="' + r.id + '" data-k="gigu" /></td>' +
+      '<td style="width:88px"><input class="inl num" style="text-align:right" value="' + esc(r.pal) +
+        '" placeholder="0" inputmode="decimal" data-scho="' + r.id + '" data-k="pal" /></td>' +
+      '<td style="width:150px"><input type="date" class="inl" style="color-scheme:dark;color:' +
+        (r.aus ? "var(--em)" : "var(--dim3)") + '" value="' + esc(r.aus) +
+        '" data-scho="' + r.id + '" data-k="aus" /></td>' +
+      '<td><input class="inl" style="color:var(--dim)" value="' + esc(r.note || "") +
+        '" placeholder="Notiz…" data-scho="' + r.id + '" data-k="note" /></td>' +
+      '<td><button class="iconbtn" data-delscho="' + r.id + '">' + ico("x") + '</button></td>' +
+    '</tr>').join("");
+
+  return '<div class="stack">' +
+    '<div class="grid4">' + tiles + '</div>' + byArea +
+    '<div class="row"><span class="muted" style="flex:1">' +
+      (S.fScho ? shown.length + " von " + list.length + " gezeigt · " + de(pal(shown)) + " Paletten"
+               : list.length + " Umlagerungen erfasst") + '</span>' +
+      (S.fScho ? '<button class="btn" data-act="clearscho">' + ico("x") + 'Filter zurücksetzen</button>' : "") +
+    '</div>' +
+    '<div class="tblwrap"><table><thead><tr>' +
+      '<th>Artikel</th><th>Lagerort</th><th>Bereich in GiGu</th><th style="text-align:right">Paletten</th>' +
+      '<th>Ausgelagert am</th><th>Notiz</th><th></th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="7" class="muted" style="padding:14px">Noch keine Umlagerungen.</td></tr>') +
+      '</tbody></table></div>' +
+    '<button class="dash" data-act="addscho">' + ico("plus") + 'Umlagerung hinzufügen</button></div>';
+}
+
 /* ---------------- Reiter: Bereiche + Sync ---------------- */
 function viewCfg() {
   const c = getCfg();
@@ -1055,6 +1174,13 @@ document.addEventListener("click", async (e) => {
     return commit((d) => d.kpi = null);
   }
 
+  /* Schott-Umlagerungen */
+  if (act === "addscho") return commit((d) => (d.schott = d.schott || []).unshift(
+    { id: uid(), art: "", ort: "", gigu: "", pal: "", aus: "", note: "" }));
+  if (g("data-delscho")) return commit((d) => d.schott = d.schott.filter((r) => r.id !== g("data-delscho")));
+  if (t.hasAttribute("data-fscho")) { S.fScho = g("data-fscho"); return render(); }
+  if (act === "clearscho") { S.fScho = ""; return render(); }
+
   /* Bereiche */
   if (act === "addarea") {
     const v = ($("#newarea").value || "").trim();
@@ -1086,7 +1212,8 @@ document.addEventListener("input", (e) => {
     S.sync = "saving"; paintHeader();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
-      try { await store.set(S.data); S.sync = "idle"; } catch (x) { S.sync = "error"; }
+      try { await store.set(S.data); S.sync = "idle"; S.err = ""; }
+      catch (x) { S.sync = "error"; S.err = x.message; }
       paintHeader();
     }, 600);
   };
@@ -1104,6 +1231,8 @@ document.addEventListener("input", (e) => {
     const x = d.drivers.find((y) => y.id === el.getAttribute("data-drv"));
     x[k] = el.value; if (k === "note") x.at = Date.now();
   });
+  if (el.getAttribute("data-scho")) return set((d) =>
+    d.schott.find((r) => r.id === el.getAttribute("data-scho"))[k] = el.value);
   if (el.getAttribute("data-prj")) return set((d) =>
     d.projects.find((p) => p.id === el.getAttribute("data-prj"))[k] = el.value);
   if (el.getAttribute("data-tsk")) { const [p, tt] = sp(el.getAttribute("data-tsk"));
@@ -1112,7 +1241,14 @@ document.addEventListener("input", (e) => {
 
 /* Auswahlfelder im Import */
 document.addEventListener("change", (e) => {
-  const a = e.target.getAttribute("data-act");
+  /* Datumsfeld und Auswahlfelder lösen kein input aus -> hier nachziehen */
+  const el = e.target;
+  if (el.getAttribute("data-scho") || el.getAttribute("data-prj") || el.getAttribute("data-tsk")) {
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    setTimeout(render, 0);
+    return;
+  }
+  const a = el.getAttribute("data-act");
   if (!a) return;
   if (a === "impsheet") { S.imp.si = +e.target.value; return render(); }
   if (a === "ksheet") { S.kimp.si = +e.target.value; S.kimp.cName = S.kimp.cVal = S.kimp.cCat = ""; return render(); }
