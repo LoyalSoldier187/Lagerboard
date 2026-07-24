@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#09090b" />
+<title>Lagerboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128230;</text></svg>" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html { background:#09090b; }
+  body { margin:0; -webkit-tap-highlight-color:transparent; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(.6); }
+  ::-webkit-scrollbar { height:8px; width:8px; }
+  ::-webkit-scrollbar-thumb { background:#3f3f46; border-radius:4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<noscript style="color:#a1a1aa;font:15px system-ui;display:block;padding:24px">
+  Diese Anwendung benötigt JavaScript.
+</noscript>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ---------- Icons (inline, keine externe Bibliothek) ---------- */
+
+const Ico = ({ d, className, title }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className || "h-4 w-4"}
+    aria-hidden="true"
+  >
+    {title && <title>{title}</title>}
+    {d}
+  </svg>
+);
+
+const Boxes = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-4.5-2.7a2 2 0 0 0-2.06 0z" />
+        <path d="m7 16.5-4.74-2.85" />
+        <path d="m7 16.5 5-3" />
+        <path d="M7 16.5v5.17" />
+        <path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L18.5 10.8a2 2 0 0 0-2.06 0z" />
+        <path d="m17 16.5-5-3" />
+        <path d="m17 16.5 4.74-2.85" />
+        <path d="M17 16.5v5.17" />
+        <path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0z" />
+        <path d="M12 8 7.26 5.15" />
+        <path d="m12 8 4.74-2.85" />
+        <path d="M12 13.5V8" />
+      </>
+    }
+  />
+);
+
+const MapPin = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0" />
+        <circle cx="12" cy="10" r="3" />
+      </>
+    }
+  />
+);
+
+const Truck = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+        <path d="M15 18H9" />
+        <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+        <circle cx="17" cy="18" r="2" />
+        <circle cx="7" cy="18" r="2" />
+      </>
+    }
+  />
+);
+
+const Plus = (p) => <Ico {...p} d={<><path d="M5 12h14" /><path d="M12 5v14" /></>} />;
+
+const Trash2 = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M3 6h18" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <line x1="10" x2="10" y1="11" y2="17" />
+        <line x1="14" x2="14" y1="11" y2="17" />
+      </>
+    }
+  />
+);
+
+const RefreshCw = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+        <path d="M8 16H3v5" />
+      </>
+    }
+  />
+);
+
+const Settings = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    }
+  />
+);
+
+const Check = (p) => <Ico {...p} d={<path d="M20 6 9 17l-5-5" />} />;
+
+const X = (p) => <Ico {...p} d={<><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>} />;
+
+const AlertCircle = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" x2="12" y1="8" y2="12" />
+        <line x1="12" x2="12.01" y1="16" y2="16" />
+      </>
+    }
+  />
+);
+
+const Upload = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" x2="12" y1="3" y2="15" />
+      </>
+    }
+  />
+);
+
+const FileSpreadsheet = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+        <path d="M8 13h2" />
+        <path d="M14 13h2" />
+        <path d="M8 17h2" />
+        <path d="M14 17h2" />
+      </>
+    }
+  />
+);
+
+const Target = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
+      </>
+    }
+  />
+);
+
+const BarChart3 = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M3 3v18h18" />
+        <path d="M18 17V9" />
+        <path d="M13 17V5" />
+        <path d="M8 17v-3" />
+      </>
+    }
+  />
+);
+
+const User = (p) => (
+  <Ico
+    {...p}
+    d={
+      <>
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </>
+    }
+  />
+);
+
+/* ---------- Speicher ----------
+   Zwei Betriebsarten:
+   1. Ohne Konfiguration: localStorage. Läuft sofort, aber nur auf DIESEM Gerät.
+   2. Mit Sync-Schlüssel: gemeinsamer Speicher über jsonbin.io, alle Geräte sehen dasselbe.
+   Der Schlüssel wird im Reiter "Bereiche" eingetragen und bleibt lokal gespeichert.
+------------------------------------ */
+
+const CFG = "lagerboard:sync";
+
+const getCfg = () => {
+  try {
+    return JSON.parse(localStorage.getItem(CFG) || "null");
+  } catch {
+    return null;
+  }
+};
+const setCfg = (c) =>
+  c ? localStorage.setItem(CFG, JSON.stringify(c)) : localStorage.removeItem(CFG);
+
+const storage = {
+  mode: () => (getCfg() ? "cloud" : "lokal"),
+
+  async get(key) {
+    const c = getCfg();
+    if (!c) {
+      const v = localStorage.getItem(key);
+      if (v === null) throw new Error("leer");
+      return { key, value: v };
+    }
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${c.bin}/latest`, {
+      headers: { "X-Master-Key": c.key, "X-Bin-Meta": "false" },
+    });
+    if (!r.ok) throw new Error("Sync-Fehler " + r.status);
+    const j = await r.json();
+    if (!j || typeof j.value !== "string") throw new Error("leer");
+    return { key, value: j.value };
+  },
+
+  async set(key, value) {
+    const c = getCfg();
+    if (!c) {
+      localStorage.setItem(key, value);
+      return { key, value };
+    }
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${c.bin}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": c.key },
+      body: JSON.stringify({ value }),
+    });
+    if (!r.ok) throw new Error("Sync-Fehler " + r.status);
+    return { key, value };
+  },
+};
+
+/* ---------- Konstanten ---------- */
+
+const K = "lagerboard:v1";
+const STATUS = [
+  { id: "frei", label: "Frei", dot: "bg-emerald-400", chip: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30" },
+  { id: "belegt", label: "Belegt", dot: "bg-amber-400", chip: "bg-amber-400/15 text-amber-300 border-amber-400/30" },
+  { id: "gesperrt", label: "Gesperrt", dot: "bg-rose-400", chip: "bg-rose-400/15 text-rose-300 border-rose-400/30" },
+  { id: "fertig", label: "Fertig", dot: "bg-sky-400", chip: "bg-sky-400/15 text-sky-300 border-sky-400/30" },
+];
+const st = (id) => STATUS.find((s) => s.id === id) || STATUS[0];
+
+/* Erkennt Euro- und Einwegpalettenlager, auch bei abweichender Schreibweise */
+const isPal = (v) => {
+  const s = String(v || "").toLowerCase().replace(/[\s.\-_]/g, "");
+  return (
+    s.includes("europalett") ||
+    s.includes("euopalett") ||
+    s.includes("einwegpalett") ||
+    s.includes("einwegpal") ||
+    s === "euro" ||
+    s === "einweg"
+  );
+};
+
+const START = {
+  apps: [
+    {
+      id: "a1",
+      name: "Konsolidierungsplatz 1",
+      slots: [
+        { id: "s1", name: "KP-01", status: "frei", note: "" },
+        { id: "s2", name: "KP-02", status: "belegt", note: "Palette Kunde Müller" },
+      ],
+    },
+  ],
+  free: [
+    { id: "f1", ort: "A-12-3", art: "Europalettenlager", kapazitaet: "2 Pal", bemerkung: "", status: "frei" },
+  ],
+  areas: ["Wareneingang", "Kommissionierung", "Versand", "Blocklager", "Hochregal"],
+  drivers: Array.from({ length: 10 }, (_, i) => ({
+    id: `d${i + 1}`,
+    name: `Fahrer ${i + 1}`,
+    area: "",
+    note: "",
+    at: 0,
+  })),
+  projects: [],
+  kpi: null,
+  rev: 0,
+};
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+const clock = (ts) =>
+  !ts ? "—" : new Date(ts).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+
+/* Datum + Uhrzeit, z. B. 24.07.2026, 08:15 */
+const stamp = (ts) =>
+  !ts
+    ? "—"
+    : new Date(ts).toLocaleString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+/* Wie lange ist das her */
+const ago = (ts, now) => {
+  if (!ts) return "";
+  const m = Math.floor((now - ts) / 60000);
+  if (m < 1) return "gerade eben";
+  if (m < 60) return `vor ${m} Min.`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `vor ${h} Std.`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "vor 1 Tag" : `vor ${d} Tagen`;
+};
+
+/* Ab wann ein Import als veraltet gilt */
+const STALE_H = 8;
+
+/* ---------- Bausteine ---------- */
+
+function Field(props) {
+  return (
+    <input
+      {...props}
+      className={
+        "w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-[15px] text-zinc-100 " +
+        "placeholder:text-zinc-600 outline-none transition focus:border-cyan-400/60 focus:bg-black/50 " +
+        (props.className || "")
+      }
+    />
+  );
+}
+
+function Ghost({ children, onClick, danger, title }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={
+        "inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium transition " +
+        "hover:border-white/25 active:scale-[0.97] " +
+        (danger ? "text-rose-300 hover:bg-rose-500/10" : "text-zinc-300 hover:bg-white/5")
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ---------- App ---------- */
+
+function Lagerboard() {
+  const [tab, setTab] = useState("apps");
+  const [fArt, setFArt] = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [now, setNow] = useState(Date.now());
+  const [data, setData] = useState(START);
+  const [loaded, setLoaded] = useState(false);
+  const [sync, setSync] = useState("idle"); // idle | saving | error
+  const [lastPull, setLastPull] = useState(0);
+  const localRev = useRef(0);
+  const pending = useRef(null);
+
+  /* --- Laden --- */
+  const pull = useCallback(async (force) => {
+    try {
+      const r = await storage.get(K);
+      if (!r) return;
+      const remote = JSON.parse(r.value);
+      /* Ältere Stände auf 10 Fahrer auffüllen */
+      const list = remote.drivers || [];
+      if (list.length < 10) {
+        remote.drivers = [
+          ...list,
+          ...Array.from({ length: 10 - list.length }, (_, i) => ({
+            id: uid(),
+            name: `Fahrer ${list.length + i + 1}`,
+            area: "",
+            note: "",
+            at: 0,
+          })),
+        ];
+      }
+      if (force || remote.rev > localRev.current) {
+        localRev.current = remote.rev;
+        setData(remote);
+      }
+      setLastPull(Date.now());
+      setSync("idle");
+    } catch {
+      /* Schlüssel existiert noch nicht */
+      setLastPull(Date.now());
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      await pull(true);
+      setLoaded(true);
+    })();
+  }, [pull]);
+
+  /* --- Uhr für die Altersanzeige --- */
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* --- Live-Abgleich alle 5s --- */
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setInterval(() => pull(false), 5000);
+    return () => clearInterval(t);
+  }, [loaded, pull]);
+
+  /* --- Speichern (entprellt) --- */
+  const push = useCallback((next) => {
+    localRev.current = next.rev;
+    setData(next);
+    setSync("saving");
+    clearTimeout(pending.current);
+    pending.current = setTimeout(async () => {
+      try {
+        const res = await storage.set(K, JSON.stringify(next));
+        setSync(res ? "idle" : "error");
+      } catch {
+        setSync("error");
+      }
+    }, 400);
+  }, []);
+
+  const edit = useCallback(
+    (fn) =>
+      setData((cur) => {
+        const next = fn(structuredClone(cur));
+        next.rev = (cur.rev || 0) + 1;
+        push(next);
+        return next;
+      }),
+    [push]
+  );
+
+  /* --- Aktionen --- */
+  const addApp = () =>
+    edit((d) => {
+      d.apps.push({ id: uid(), name: `Konsolidierungsplatz ${d.apps.length + 1}`, slots: [] });
+      return d;
+    });
+  const delApp = (id) => edit((d) => ((d.apps = d.apps.filter((a) => a.id !== id)), d));
+  const renameApp = (id, v) =>
+    edit((d) => ((d.apps.find((a) => a.id === id).name = v), d));
+  const addSlot = (aid) =>
+    edit((d) => {
+      d.apps.find((a) => a.id === aid).slots.push({ id: uid(), name: "", status: "frei", note: "" });
+      return d;
+    });
+  const setSlot = (aid, sid, patch) =>
+    edit((d) => {
+      const s = d.apps.find((a) => a.id === aid).slots.find((x) => x.id === sid);
+      Object.assign(s, patch);
+      return d;
+    });
+  const delSlot = (aid, sid) =>
+    edit((d) => {
+      const a = d.apps.find((x) => x.id === aid);
+      a.slots = a.slots.filter((s) => s.id !== sid);
+      return d;
+    });
+
+  const addRow = () =>
+    edit((d) => (d.free.push({ id: uid(), ort: "", art: "", kapazitaet: "", bemerkung: "", status: "frei", src: "", srcAt: Date.now() }), d));
+  const setRow = (id, patch) =>
+    edit((d) => {
+      const r = d.free.find((x) => x.id === id);
+      Object.assign(r, patch);
+      /* Von Hand geändert: Zeile ist wieder aktuell */
+      r.editAt = Date.now();
+      return d;
+    });
+  const delRow = (id) => edit((d) => ((d.free = d.free.filter((r) => r.id !== id)), d));
+  const delNonPal = () =>
+    edit((d) => ((d.free = d.free.filter((r) => isPal(r.art))), d));
+  const delByPrefix = (p) =>
+    edit((d) => ((d.free = d.free.filter((r) => !String(r.ort || "").trim().startsWith(p))), d));
+  const importRows = (rows, mode, src) =>
+    edit((d) => {
+      const at = Date.now();
+      const fresh = rows.map((r) => ({ id: uid(), src: src || "", srcAt: at, ...r }));
+      d.free = mode === "replace" ? fresh : [...d.free, ...fresh];
+      return d;
+    });
+
+  const setDriver = (id, patch) =>
+    edit((d) => {
+      Object.assign(d.drivers.find((x) => x.id === id), patch, { at: Date.now() });
+      return d;
+    });
+  const addArea = (v) =>
+    edit((d) => (v.trim() && !d.areas.includes(v.trim()) ? (d.areas.push(v.trim()), d) : d));
+  const delArea = (v) => edit((d) => ((d.areas = d.areas.filter((a) => a !== v)), d));
+
+  /* --- Spezialprojekte --- */
+  const addProject = () =>
+    edit((d) => {
+      (d.projects ||= []).push({
+        id: uid(),
+        title: "",
+        owner: "",
+        due: "",
+        prio: "normal",
+        note: "",
+        tasks: [],
+      });
+      return d;
+    });
+  const setProject = (id, patch) =>
+    edit((d) => (Object.assign(d.projects.find((p) => p.id === id), patch), d));
+  const delProject = (id) =>
+    edit((d) => ((d.projects = d.projects.filter((p) => p.id !== id)), d));
+  const addTask = (pid) =>
+    edit((d) => {
+      d.projects.find((p) => p.id === pid).tasks.push({
+        id: uid(),
+        text: "",
+        owner: "",
+        done: false,
+      });
+      return d;
+    });
+  const setTask = (pid, tid, patch) =>
+    edit((d) => {
+      const t = d.projects.find((p) => p.id === pid).tasks.find((x) => x.id === tid);
+      Object.assign(t, patch);
+      return d;
+    });
+  const delTask = (pid, tid) =>
+    edit((d) => {
+      const p = d.projects.find((x) => x.id === pid);
+      p.tasks = p.tasks.filter((t) => t.id !== tid);
+      return d;
+    });
+
+  /* --- KPI-SF --- */
+  const setKpi = (payload) => edit((d) => ((d.kpi = payload), d));
+  const clearKpi = () => edit((d) => ((d.kpi = null), d));
+
+  /* --- Kennzahlen --- */
+  const allSlots = data.apps.flatMap((a) => a.slots);
+  const counts = STATUS.map((s) => ({ ...s, n: allSlots.filter((x) => x.status === s.id).length }));
+  const active = data.drivers.filter((d) => d.area).length;
+
+  /* --- Auswertung Lagerorte --- */
+  const arten = [...new Set(data.free.map((r) => (r.art || "").trim()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "de")
+  );
+  const byArt = [
+    ...arten.map((a) => ({ art: a, rows: data.free.filter((r) => (r.art || "").trim() === a) })),
+    ...(data.free.some((r) => !(r.art || "").trim())
+      ? [{ art: "Ohne Angabe", rows: data.free.filter((r) => !(r.art || "").trim()) }]
+      : []),
+  ].map((g) => ({
+    ...g,
+    total: g.rows.length,
+    counts: Object.fromEntries(
+      STATUS.map((s) => [s.id, g.rows.filter((r) => (r.status || "frei") === s.id).length])
+    ),
+  }));
+  const freeTotals = Object.fromEntries(
+    STATUS.map((s) => [s.id, data.free.filter((r) => (r.status || "frei") === s.id).length])
+  );
+  const shown = data.free.filter(
+    (r) =>
+      (!fArt || (fArt === "Ohne Angabe" ? !(r.art || "").trim() : (r.art || "").trim() === fArt)) &&
+      (!fStatus || (r.status || "frei") === fStatus)
+  );
+
+  /* Jüngster Import: Stand der Liste */
+  const imported = data.free.filter((r) => r.src && r.srcAt);
+  const lastImp = imported.length
+    ? imported.reduce((a, b) => (b.srcAt > a.srcAt ? b : a))
+    : null;
+  const impCount = lastImp ? imported.filter((r) => r.srcAt === lastImp.srcAt).length : 0;
+  const impStale = lastImp && now - lastImp.srcAt > STALE_H * 3600000;
+
+  if (!loaded)
+    return (
+      <div className="flex min-h-[420px] items-center justify-center bg-zinc-950 text-zinc-500">
+        <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Board wird geladen…
+      </div>
+    );
+
+  const TABS = [
+    { id: "apps", label: "Konsolidierungsplätze", icon: Boxes },
+    { id: "free", label: "Freie Lagerorte", icon: MapPin },
+    { id: "crew", label: "Stapler", icon: Truck },
+    { id: "proj", label: "Spezialprojekte", icon: Target },
+    { id: "kpi", label: "KPI-SF", icon: BarChart3 },
+    { id: "cfg", label: "Bereiche", icon: Settings },
+  ];
+
+  return (
+    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 antialiased">
+      {/* Kopf */}
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-zinc-950/95 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 ring-1 ring-cyan-400/40">
+            <Boxes className="h-5 w-5 text-cyan-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[17px] font-semibold tracking-tight">Lagerboard</h1>
+            <p className="truncate text-xs text-zinc-500">
+              {active}/{data.drivers.length} Fahrer eingeteilt · Stand {clock(lastPull)}
+            </p>
+          </div>
+          <button
+            onClick={() => pull(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-2 text-xs text-zinc-400 transition hover:border-white/25 hover:text-zinc-200"
+          >
+            {sync === "saving" ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-300" />
+            ) : sync === "error" ? (
+              <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+            ) : (
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            )}
+            <span className="hidden sm:inline">
+              {sync === "saving" ? "Speichert" : sync === "error" ? "Fehler" : "Live"}
+            </span>
+          </button>
+        </div>
+
+        <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-2 pb-2">
+          {TABS.map((t) => {
+            const on = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={
+                  "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition " +
+                  (on
+                    ? "bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-400/40"
+                    : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300")
+                }
+              >
+                <t.icon className="h-4 w-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-4 py-4 pb-24">
+        {/* ---- Konsolidierungsplätze ---- */}
+        {tab === "apps" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-2">
+              {counts.map((c) => (
+                <div key={c.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+                  <div className="text-2xl font-semibold tabular-nums">{c.n}</div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                    <span className={"h-1.5 w-1.5 rounded-full " + c.dot} />
+                    {c.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {data.apps.map((app) => (
+              <section key={app.id} className="rounded-xl border border-white/10 bg-white/[0.02]">
+                <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
+                  <input
+                    value={app.name}
+                    onChange={(e) => renameApp(app.id, e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none focus:text-cyan-200"
+                  />
+                  <span className="rounded-md bg-white/5 px-2 py-0.5 text-xs tabular-nums text-zinc-500">
+                    {app.slots.length}
+                  </span>
+                  <Ghost onClick={() => delApp(app.id)} danger title="Konsolidierungsplatz löschen">
+                    <Trash2 className="h-4 w-4" />
+                  </Ghost>
+                </div>
+
+                <div className="divide-y divide-white/5">
+                  {app.slots.map((s) => (
+                    <div key={s.id} className="space-y-2 px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className={"h-2.5 w-2.5 shrink-0 rounded-full " + st(s.status).dot} />
+                        <input
+                          value={s.name}
+                          placeholder="Stellplatz"
+                          onChange={(e) => setSlot(app.id, s.id, { name: e.target.value })}
+                          className="min-w-0 flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-zinc-600 focus:text-cyan-200"
+                        />
+                        <Ghost onClick={() => delSlot(app.id, s.id)} danger>
+                          <X className="h-4 w-4" />
+                        </Ghost>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 pl-[18px]">
+                        {STATUS.map((o) => (
+                          <button
+                            key={o.id}
+                            onClick={() => setSlot(app.id, s.id, { status: o.id })}
+                            className={
+                              "rounded-md border px-2.5 py-1 text-xs font-medium transition " +
+                              (s.status === o.id
+                                ? o.chip
+                                : "border-white/10 text-zinc-500 hover:border-white/25")
+                            }
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        value={s.note}
+                        placeholder="Notiz…"
+                        onChange={(e) => setSlot(app.id, s.id, { note: e.target.value })}
+                        className="ml-[18px] w-[calc(100%-18px)] bg-transparent text-sm text-zinc-400 outline-none placeholder:text-zinc-700 focus:text-zinc-200"
+                      />
+                    </div>
+                  ))}
+                  {!app.slots.length && (
+                    <p className="px-3 py-4 text-sm text-zinc-600">
+                      Noch keine Stellplätze. Unten hinzufügen.
+                    </p>
+                  )}
+                </div>
+
+                <div className="border-t border-white/10 p-2">
+                  <button
+                    onClick={() => addSlot(app.id)}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-cyan-200"
+                  >
+                    <Plus className="h-4 w-4" /> Stellplatz hinzufügen
+                  </button>
+                </div>
+              </section>
+            ))}
+
+            <button
+              onClick={addApp}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-3 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
+            >
+              <Plus className="h-4 w-4" /> Konsolidierungsplatz anlegen
+            </button>
+          </div>
+        )}
+
+        {/* ---- Freie Lagerorte ---- */}
+        {tab === "free" && (
+          <div className="space-y-3">
+            <ExcelImport onImport={importRows} existing={data.free.length} />
+
+            {lastImp && (
+              <div
+                className={
+                  "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-2.5 " +
+                  (impStale
+                    ? "border-amber-400/40 bg-amber-400/[0.07]"
+                    : "border-white/10 bg-white/[0.03]")
+                }
+              >
+                {impStale ? (
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-300" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 shrink-0 text-zinc-500" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm">
+                    <span className={impStale ? "text-amber-200" : "text-zinc-300"}>
+                      Tabellenstand {stamp(lastImp.srcAt)}
+                    </span>
+                    <span className="text-zinc-500"> · {ago(lastImp.srcAt, now)}</span>
+                  </p>
+                  <p className="truncate text-xs text-zinc-500">
+                    {impCount} Zeilen aus {lastImp.src || "Datei"}
+                  </p>
+                </div>
+                {impStale && (
+                  <p className="w-full text-xs text-amber-200/80 sm:w-auto">
+                    Plätze könnten inzwischen belegt sein.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <PrefixCleanup rows={data.free} onDelete={delByPrefix} onDeleteNonPal={delNonPal} />
+
+            {/* Auswertung gesamt */}
+            <div className="grid grid-cols-4 gap-2">
+              {STATUS.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setFStatus(fStatus === s.id ? "" : s.id)}
+                  className={
+                    "rounded-xl border px-3 py-2.5 text-left transition " +
+                    (fStatus === s.id
+                      ? "border-cyan-400/50 bg-cyan-400/10"
+                      : "border-white/10 bg-white/[0.03] hover:border-white/25")
+                  }
+                >
+                  <div className="text-2xl font-semibold tabular-nums">{freeTotals[s.id]}</div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                    <span className={"h-1.5 w-1.5 rounded-full " + s.dot} />
+                    {s.label}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Auswertung nach Platzart */}
+            {byArt.length > 0 && (
+              <section className="overflow-hidden rounded-xl border border-white/10">
+                <div className="border-b border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500">
+                  Plätze nach Art
+                </div>
+                <div className="divide-y divide-white/5">
+                  {byArt.map((g) => (
+                    <button
+                      key={g.art}
+                      onClick={() => setFArt(fArt === g.art ? "" : g.art)}
+                      className={
+                        "flex w-full flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 text-left transition " +
+                        (fArt === g.art ? "bg-cyan-400/10" : "hover:bg-white/[0.02]")
+                      }
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
+                        {g.art}
+                      </span>
+                      <span className="shrink-0 text-lg font-semibold tabular-nums">{g.total}</span>
+                      <span className="flex w-full shrink-0 gap-1.5 sm:w-auto">
+                        {STATUS.map((s) => (
+                          <span
+                            key={s.id}
+                            title={s.label}
+                            className={
+                              "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs tabular-nums " +
+                              (g.counts[s.id] ? s.chip : "border-white/10 text-zinc-700")
+                            }
+                          >
+                            <span className={"h-1.5 w-1.5 rounded-full " + s.dot} />
+                            {g.counts[s.id]}
+                          </span>
+                        ))}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div className="flex items-center gap-2">
+              <p className="flex-1 text-sm text-zinc-500">
+                {shown.length === data.free.length
+                  ? `${data.free.length} Lagerorte erfasst.`
+                  : `${shown.length} von ${data.free.length} Lagerorten gezeigt.`}
+              </p>
+              {(fArt || fStatus) && (
+                <Ghost
+                  onClick={() => {
+                    setFArt("");
+                    setFStatus("");
+                  }}
+                >
+                  <X className="h-4 w-4" /> Filter zurücksetzen
+                </Ghost>
+              )}
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-white/10">
+              <table className="w-full min-w-[820px] border-collapse text-sm">
+                <thead>
+                  <tr className="bg-white/[0.04] text-left text-xs uppercase tracking-wide text-zinc-500">
+                    <th className="px-3 py-2.5 font-medium">Lagerort</th>
+                    <th className="px-3 py-2.5 font-medium">Platzart</th>
+                    <th className="px-3 py-2.5 font-medium">Status</th>
+                    <th className="px-3 py-2.5 font-medium">Kapazität</th>
+                    <th className="px-3 py-2.5 font-medium">Bemerkung</th>
+                    <th className="px-3 py-2.5 font-medium">Stand</th>
+                    <th className="w-10" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {shown.map((r) => (
+                    <tr key={r.id} className="hover:bg-white/[0.02]">
+                      {["ort", "art"].map((f) => (
+                        <td key={f} className="px-1 py-1">
+                          <input
+                            value={r[f] ?? ""}
+                            onChange={(e) => setRow(r.id, { [f]: e.target.value })}
+                            className={
+                              "w-full rounded-md bg-transparent px-2 py-2 outline-none focus:bg-black/40 focus:text-cyan-200 " +
+                              (f === "ort" ? "font-medium tabular-nums" : "text-zinc-400")
+                            }
+                          />
+                        </td>
+                      ))}
+                      <td className="px-1 py-1">
+                        <div className="flex gap-1">
+                          {STATUS.map((o) => (
+                            <button
+                              key={o.id}
+                              onClick={() => setRow(r.id, { status: o.id })}
+                              title={o.label}
+                              className={
+                                "rounded-md border px-2 py-1.5 text-xs font-medium transition " +
+                                ((r.status || "frei") === o.id
+                                  ? o.chip
+                                  : "border-white/10 text-zinc-600 hover:border-white/25")
+                              }
+                            >
+                              {o.label.slice(0, 1)}
+                            </button>
+                          ))}
+                        </div>
+                      </td>
+                      {["kapazitaet", "bemerkung"].map((f) => (
+                        <td key={f} className="px-1 py-1">
+                          <input
+                            value={r[f] ?? ""}
+                            onChange={(e) => setRow(r.id, { [f]: e.target.value })}
+                            className="w-full rounded-md bg-transparent px-2 py-2 text-zinc-400 outline-none focus:bg-black/40 focus:text-cyan-200"
+                          />
+                        </td>
+                      ))}
+                      {(() => {
+                        const ts = Math.max(r.srcAt || 0, r.editAt || 0);
+                        const old = ts && now - ts > STALE_H * 3600000;
+                        return (
+                          <td className="whitespace-nowrap px-3 py-2">
+                            {ts ? (
+                              <span
+                                title={
+                                  stamp(ts) + (r.editAt >= (r.srcAt || 0) ? " (von Hand)" : " (Import)")
+                                }
+                                className={
+                                  "text-xs tabular-nums " + (old ? "text-amber-300" : "text-zinc-500")
+                                }
+                              >
+                                {ago(ts, now)}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-zinc-700">—</span>
+                            )}
+                          </td>
+                        );
+                      })()}
+                      <td className="px-1">
+                        <button
+                          onClick={() => delRow(r.id)}
+                          className="rounded-md p-2 text-zinc-600 transition hover:bg-rose-500/10 hover:text-rose-300"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {!shown.length && (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-4 text-zinc-600">
+                        Keine Lagerorte für diesen Filter.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              onClick={addRow}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-3 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
+            >
+              <Plus className="h-4 w-4" /> Zeile hinzufügen
+            </button>
+          </div>
+        )}
+
+        {/* ---- Stapler ---- */}
+        {tab === "crew" && (
+          <div className="space-y-3">
+            {data.drivers.map((d) => (
+              <section
+                key={d.id}
+                className={
+                  "rounded-xl border bg-white/[0.02] p-3 transition " +
+                  (d.area ? "border-cyan-400/30" : "border-white/10")
+                }
+              >
+                <div className="mb-2.5 flex items-center gap-2">
+                  <Truck className={"h-4 w-4 " + (d.area ? "text-cyan-300" : "text-zinc-600")} />
+                  <input
+                    value={d.name}
+                    onChange={(e) => setDriver(d.id, { name: e.target.value })}
+                    className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none focus:text-cyan-200"
+                  />
+                  <span className="shrink-0 text-xs tabular-nums text-zinc-600">
+                    {clock(d.at)}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setDriver(d.id, { area: "" })}
+                    className={
+                      "rounded-md border px-2.5 py-1.5 text-xs font-medium transition " +
+                      (!d.area
+                        ? "border-zinc-500/40 bg-zinc-500/15 text-zinc-300"
+                        : "border-white/10 text-zinc-600 hover:border-white/25")
+                    }
+                  >
+                    Frei
+                  </button>
+                  {data.areas.map((a) => (
+                    <button
+                      key={a}
+                      onClick={() => setDriver(d.id, { area: a })}
+                      className={
+                        "rounded-md border px-2.5 py-1.5 text-xs font-medium transition " +
+                        (d.area === a
+                          ? "border-cyan-400/50 bg-cyan-400/15 text-cyan-200"
+                          : "border-white/10 text-zinc-500 hover:border-white/25 hover:text-zinc-300")
+                      }
+                    >
+                      {d.area === a && <Check className="mr-1 inline h-3 w-3" />}
+                      {a}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  value={d.note}
+                  placeholder="Notiz zum Einsatz…"
+                  onChange={(e) => setDriver(d.id, { note: e.target.value })}
+                  className="mt-2 w-full bg-transparent text-sm text-zinc-400 outline-none placeholder:text-zinc-700 focus:text-zinc-200"
+                />
+              </section>
+            ))}
+          </div>
+        )}
+
+        {/* ---- Spezialprojekte ---- */}
+        {tab === "proj" && (
+          <Projects
+            projects={data.projects || []}
+            people={data.drivers.map((d) => d.name)}
+            onAdd={addProject}
+            onSet={setProject}
+            onDel={delProject}
+            onAddTask={addTask}
+            onSetTask={setTask}
+            onDelTask={delTask}
+          />
+        )}
+
+        {/* ---- KPI-SF ---- */}
+        {tab === "kpi" && <Kpi kpi={data.kpi} onSet={setKpi} onClear={clearKpi} now={now} />}
+
+        {/* ---- Bereiche ---- */}
+        {tab === "cfg" && (
+          <div className="space-y-4">
+            <AreaEditor areas={data.areas} onAdd={addArea} onDel={delArea} />
+            <SyncSetup />
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+/* ---------- Excel-Import ---------- */
+/* Fest: Spalte A = Lagerort, Spalte B = Platzart */
+
+function ExcelImport({ onImport, existing }) {
+  const file = useRef(null);
+  const [book, setBook] = useState(null);
+  const [sheet, setSheet] = useState("");
+  const [rows, setRows] = useState([]);
+  const [skipHead, setSkipHead] = useState(true);
+  const [only, setOnly] = useState("");
+  const [onlyPal, setOnlyPal] = useState(true);
+  const [fname, setFname] = useState("");
+  const [err, setErr] = useState("");
+
+  const loadSheet = (wb, name) => {
+    const grid = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "", raw: false });
+    /* Nur Spalte A und B, Leerzeilen raus */
+    const clean = grid
+      .map((r) => ({ ort: String(r[0] ?? "").trim(), art: String(r[1] ?? "").trim() }))
+      .filter((r) => r.ort !== "" || r.art !== "");
+    setRows(clean);
+  };
+
+  const pick = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setErr("");
+    try {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      if (!wb.SheetNames.length) throw new Error("leer");
+      setBook(wb);
+      setFname(f.name);
+      setSheet(wb.SheetNames[0]);
+      loadSheet(wb, wb.SheetNames[0]);
+    } catch {
+      setErr("Datei konnte nicht gelesen werden. Unterstützt: .xlsx, .xls, .csv");
+      setBook(null);
+    }
+    e.target.value = "";
+  };
+
+  /* Erste Zeile optional als Überschrift überspringen */
+  const ready = (skipHead ? rows.slice(1) : rows)
+    .filter((r) => !only.trim() || r.ort.startsWith(only.trim()))
+    .filter((r) => !onlyPal || isPal(r.art))
+    .map((r) => ({
+      ort: r.ort,
+      art: r.art,
+      kapazitaet: "",
+      bemerkung: "",
+      status: "frei",
+    }));
+
+  const reset = () => {
+    setBook(null);
+    setSheet("");
+    setRows([]);
+    setSkipHead(true);
+    setOnly("");
+    setFname("");
+    setErr("");
+  };
+
+  const run = (mode) => {
+    onImport(ready, mode, fname);
+    reset();
+  };
+
+  /* --- Startzustand: nur die Auswahlfläche --- */
+  if (!book)
+    return (
+      <div>
+        <button
+          onClick={() => file.current?.click()}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-4 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
+        >
+          <Upload className="h-4 w-4" /> Excel-Tabelle einlesen
+        </button>
+        <input
+          ref={file}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          onChange={pick}
+          className="hidden"
+        />
+        {err && (
+          <p className="mt-2 flex items-start gap-1.5 text-sm text-rose-300">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {err}
+          </p>
+        )}
+      </div>
+    );
+
+  /* --- Vorschau --- */
+  return (
+    <section className="rounded-xl border border-cyan-400/30 bg-cyan-400/[0.04]">
+      <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
+        <FileSpreadsheet className="h-4 w-4 shrink-0 text-cyan-300" />
+        <span className="flex-1 truncate text-[15px] font-semibold">Import prüfen</span>
+        <Ghost onClick={reset}>
+          <X className="h-4 w-4" />
+        </Ghost>
+      </div>
+
+      <div className="space-y-3 p-3">
+        {book.SheetNames.length > 1 && (
+          <label className="block">
+            <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
+              Tabellenblatt
+            </span>
+            <select
+              value={sheet}
+              onChange={(e) => {
+                setSheet(e.target.value);
+                loadSheet(book, e.target.value);
+              }}
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-[15px] outline-none focus:border-cyan-400/60"
+            >
+              {book.SheetNames.map((n) => (
+                <option key={n} value={n} className="bg-zinc-900">
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {!rows.length ? (
+          <p className="text-sm text-zinc-500">Dieses Tabellenblatt enthält keine Daten.</p>
+        ) : (
+          <>
+            <p className="text-sm text-zinc-500">
+              Übernommen werden Spalte A als Lagerort und Spalte B als Platzart.
+            </p>
+
+            <button
+              onClick={() => setSkipHead(!skipHead)}
+              className="flex w-full items-center gap-2 rounded-lg border border-white/10 px-3 py-2.5 text-left text-sm transition hover:border-white/25"
+            >
+              <span
+                className={
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition " +
+                  (skipHead
+                    ? "border-cyan-400/60 bg-cyan-400/20 text-cyan-200"
+                    : "border-white/20")
+                }
+              >
+                {skipHead && <Check className="h-3 w-3" />}
+              </span>
+              <span className="flex-1 text-zinc-300">Erste Zeile ist eine Überschrift</span>
+              {rows[0] && (
+                <span className="truncate text-xs text-zinc-600">
+                  {rows[0].ort || "—"} · {rows[0].art || "—"}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setOnlyPal(!onlyPal)}
+              className="flex w-full items-center gap-2 rounded-lg border border-white/10 px-3 py-2.5 text-left text-sm transition hover:border-white/25"
+            >
+              <span
+                className={
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition " +
+                  (onlyPal ? "border-cyan-400/60 bg-cyan-400/20 text-cyan-200" : "border-white/20")
+                }
+              >
+                {onlyPal && <Check className="h-3 w-3" />}
+              </span>
+              <span className="flex-1 text-zinc-300">
+                Nur Europaletten- und Einwegpalettenlager
+              </span>
+            </button>
+
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
+                Nur diesen Nummernkreis übernehmen (optional)
+              </span>
+              <Field
+                value={only}
+                placeholder="z. B. 64-"
+                onChange={(e) => setOnly(e.target.value)}
+                className="tabular-nums"
+              />
+            </label>
+
+            {/* Vorschau */}
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full min-w-[380px] border-collapse text-sm">
+                <thead>
+                  <tr className="bg-white/[0.04] text-left text-xs uppercase tracking-wide text-zinc-500">
+                    <th className="px-3 py-2 font-medium">Lagerort (A)</th>
+                    <th className="px-3 py-2 font-medium">Platzart (B)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {ready.slice(0, 5).map((r, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2 font-medium tabular-nums">{r.ort || "—"}</td>
+                      <td className="px-3 py-2 text-zinc-400">{r.art || "—"}</td>
+                    </tr>
+                  ))}
+                  {!ready.length && (
+                    <tr>
+                      <td colSpan={2} className="px-3 py-3 text-zinc-600">
+                        Keine Zeilen übrig. Prüfe die Datei oder den Haken oben.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-sm text-zinc-500">
+              {ready.length} Zeilen erkannt
+              {ready.length > 5 && ` (Vorschau zeigt 5)`}.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => run("append")}
+                disabled={!ready.length}
+                className="flex-1 rounded-lg bg-cyan-400/15 px-4 py-2.5 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25 disabled:opacity-40"
+              >
+                Anhängen ({existing} bleiben)
+              </button>
+              <button
+                onClick={() => run("replace")}
+                disabled={!ready.length}
+                className="flex-1 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-rose-400/40 hover:text-rose-200 disabled:opacity-40"
+              >
+                Tabelle ersetzen
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Aufräumen nach Nummernkreis ---------- */
+
+function PrefixCleanup({ rows, onDelete, onDeleteNonPal }) {
+  const [p, setP] = useState("65-");
+  const [confirm, setConfirm] = useState(false);
+  const [confirmPal, setConfirmPal] = useState(false);
+
+  const hit = rows.filter((r) => String(r.ort || "").trim().startsWith(p.trim()));
+  const nonPal = rows.filter((r) => !isPal(r.art));
+  const valid = p.trim() !== "";
+
+  return (
+    <section className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Trash2 className="h-4 w-4 shrink-0 text-zinc-500" />
+        <span className="text-[15px] font-semibold">Nummernkreis entfernen</span>
+      </div>
+      <p className="mb-2.5 text-sm text-zinc-500">
+        Löscht alle Lagerorte, deren Nummer so beginnt. Gilt auch für deinen Teamleiter.
+      </p>
+
+      <div className="flex gap-2">
+        <Field
+          value={p}
+          placeholder="z. B. 65-"
+          onChange={(e) => {
+            setP(e.target.value);
+            setConfirm(false);
+          }}
+          className="tabular-nums"
+        />
+        <button
+          disabled={!valid || !hit.length}
+          onClick={() => {
+            if (!confirm) return setConfirm(true);
+            onDelete(p.trim());
+            setConfirm(false);
+          }}
+          className={
+            "shrink-0 rounded-lg px-4 text-sm font-medium transition disabled:opacity-40 " +
+            (confirm
+              ? "bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/50 hover:bg-rose-500/30"
+              : "border border-white/10 text-zinc-300 hover:border-rose-400/40 hover:text-rose-200")
+          }
+        >
+          {confirm ? `${hit.length} wirklich löschen` : "Löschen"}
+        </button>
+      </div>
+
+      <p className="mt-2 text-sm text-zinc-500">
+        {!valid
+          ? "Nummernkreis eingeben."
+          : hit.length
+          ? `${hit.length} Treffer, z. B. ${hit
+              .slice(0, 3)
+              .map((r) => r.ort)
+              .join(", ")}${hit.length > 3 ? " …" : ""}`
+          : "Keine Treffer."}
+      </p>
+      {confirm && (
+        <button
+          onClick={() => setConfirm(false)}
+          className="mt-1 text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
+        >
+          Abbrechen
+        </button>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
+        <p className="min-w-0 flex-1 text-sm text-zinc-500">
+          {nonPal.length
+            ? `${nonPal.length} Plätze sind weder Euro- noch Einwegpalettenlager.`
+            : "Nur Euro- und Einwegpalettenlager vorhanden."}
+        </p>
+        <button
+          disabled={!nonPal.length}
+          onClick={() => {
+            if (!confirmPal) return setConfirmPal(true);
+            onDeleteNonPal();
+            setConfirmPal(false);
+          }}
+          className={
+            "shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-40 " +
+            (confirmPal
+              ? "bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/50 hover:bg-rose-500/30"
+              : "border border-white/10 text-zinc-300 hover:border-rose-400/40 hover:text-rose-200")
+          }
+        >
+          {confirmPal ? `${nonPal.length} wirklich löschen` : "Andere Arten entfernen"}
+        </button>
+        {confirmPal && (
+          <button
+            onClick={() => setConfirmPal(false)}
+            className="text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
+          >
+            Abbrechen
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Spezialprojekte ---------- */
+
+const PRIO = [
+  { id: "hoch", label: "Hoch", chip: "bg-rose-400/15 text-rose-300 border-rose-400/30" },
+  { id: "normal", label: "Normal", chip: "bg-sky-400/15 text-sky-300 border-sky-400/30" },
+  { id: "niedrig", label: "Niedrig", chip: "bg-zinc-400/10 text-zinc-400 border-white/15" },
+];
+
+function Bar({ pct, tone = "cyan" }) {
+  const c = tone === "done" ? "bg-emerald-400" : "bg-cyan-400";
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div
+        className={"h-full rounded-full transition-all duration-500 " + c}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function Projects({ projects, people, onAdd, onSet, onDel, onAddTask, onSetTask, onDelTask }) {
+  const stat = (p) => {
+    const n = p.tasks.length;
+    const d = p.tasks.filter((t) => t.done).length;
+    return { n, d, pct: n ? Math.round((d / n) * 100) : 0 };
+  };
+  const allTasks = projects.flatMap((p) => p.tasks);
+  const doneAll = allTasks.filter((t) => t.done).length;
+  const pctAll = allTasks.length ? Math.round((doneAll / allTasks.length) * 100) : 0;
+
+  /* Wer hat wie viel offen */
+  const load = [...new Set(allTasks.map((t) => t.owner).filter(Boolean))]
+    .map((o) => ({
+      owner: o,
+      open: allTasks.filter((t) => t.owner === o && !t.done).length,
+      done: allTasks.filter((t) => t.owner === o && t.done).length,
+    }))
+    .sort((a, b) => b.open + b.done - (a.open + a.done));
+  const maxLoad = Math.max(1, ...load.map((l) => l.open + l.done));
+
+  return (
+    <div className="space-y-4">
+      {/* Gesamtfortschritt */}
+      {allTasks.length > 0 && (
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="mb-2 flex items-baseline gap-2">
+            <span className="text-3xl font-semibold tabular-nums">{pctAll}%</span>
+            <span className="text-sm text-zinc-500">
+              {doneAll} von {allTasks.length} Aufgaben erledigt
+            </span>
+          </div>
+          <Bar pct={pctAll} tone={pctAll === 100 ? "done" : "cyan"} />
+
+          {load.length > 0 && (
+            <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">Verteilung</p>
+              {load.map((l) => (
+                <div key={l.owner} className="flex items-center gap-2">
+                  <span className="w-24 shrink-0 truncate text-sm text-zinc-400">{l.owner}</span>
+                  <div className="flex h-4 flex-1 overflow-hidden rounded bg-white/5">
+                    <div
+                      className="bg-emerald-400/70"
+                      style={{ width: `${(l.done / maxLoad) * 100}%` }}
+                      title={`${l.done} erledigt`}
+                    />
+                    <div
+                      className="bg-cyan-400/70"
+                      style={{ width: `${(l.open / maxLoad) * 100}%` }}
+                      title={`${l.open} offen`}
+                    />
+                  </div>
+                  <span className="w-14 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+                    {l.done}/{l.done + l.open}
+                  </span>
+                </div>
+              ))}
+              <p className="pt-1 text-xs text-zinc-600">
+                <span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-400/70" />
+                erledigt
+                <span className="ml-3 mr-1 inline-block h-2 w-2 rounded-full bg-cyan-400/70" />
+                offen
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {projects.map((p) => {
+        const s = stat(p);
+        const pr = PRIO.find((x) => x.id === p.prio) || PRIO[1];
+        return (
+          <section key={p.id} className="rounded-xl border border-white/10 bg-white/[0.02]">
+            <div className="space-y-2 border-b border-white/10 p-3">
+              <div className="flex items-center gap-2">
+                <input
+                  value={p.title}
+                  placeholder="Projektname"
+                  onChange={(e) => onSet(p.id, { title: e.target.value })}
+                  className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-zinc-600 focus:text-cyan-200"
+                />
+                <Ghost onClick={() => onDel(p.id)} danger title="Projekt löschen">
+                  <Trash2 className="h-4 w-4" />
+                </Ghost>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={p.owner}
+                  onChange={(e) => onSet(p.id, { owner: e.target.value })}
+                  className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-sm outline-none focus:border-cyan-400/60"
+                >
+                  <option value="" className="bg-zinc-900">
+                    Verantwortlich —
+                  </option>
+                  {people.map((n) => (
+                    <option key={n} value={n} className="bg-zinc-900">
+                      {n}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="date"
+                  value={p.due}
+                  onChange={(e) => onSet(p.id, { due: e.target.value })}
+                  className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-sm text-zinc-300 outline-none focus:border-cyan-400/60"
+                />
+
+                <div className="flex gap-1">
+                  {PRIO.map((o) => (
+                    <button
+                      key={o.id}
+                      onClick={() => onSet(p.id, { prio: o.id })}
+                      className={
+                        "rounded-md border px-2 py-1.5 text-xs font-medium transition " +
+                        (p.prio === o.id ? o.chip : "border-white/10 text-zinc-600 hover:border-white/25")
+                      }
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <Bar pct={s.pct} tone={s.pct === 100 ? "done" : "cyan"} />
+                <span className="w-20 shrink-0 text-right text-xs tabular-nums text-zinc-500">
+                  {s.d}/{s.n} · {s.pct}%
+                </span>
+              </div>
+            </div>
+
+            <div className="divide-y divide-white/5">
+              {p.tasks.map((t) => (
+                <div key={t.id} className="flex items-center gap-2 px-3 py-2">
+                  <button
+                    onClick={() => onSetTask(p.id, t.id, { done: !t.done })}
+                    className={
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition " +
+                      (t.done
+                        ? "border-emerald-400/60 bg-emerald-400/20 text-emerald-300"
+                        : "border-white/20 hover:border-white/40")
+                    }
+                  >
+                    {t.done && <Check className="h-3.5 w-3.5" />}
+                  </button>
+                  <input
+                    value={t.text}
+                    placeholder="Aufgabe"
+                    onChange={(e) => onSetTask(p.id, t.id, { text: e.target.value })}
+                    className={
+                      "min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-600 focus:text-cyan-200 " +
+                      (t.done ? "text-zinc-600 line-through" : "text-zinc-200")
+                    }
+                  />
+                  <select
+                    value={t.owner}
+                    onChange={(e) => onSetTask(p.id, t.id, { owner: e.target.value })}
+                    className="w-28 shrink-0 rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-xs outline-none focus:border-cyan-400/60"
+                  >
+                    <option value="" className="bg-zinc-900">
+                      —
+                    </option>
+                    {people.map((n) => (
+                      <option key={n} value={n} className="bg-zinc-900">
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => onDelTask(p.id, t.id)}
+                    className="shrink-0 rounded-md p-1.5 text-zinc-600 transition hover:bg-rose-500/10 hover:text-rose-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {!p.tasks.length && (
+                <p className="px-3 py-3 text-sm text-zinc-600">Noch keine Aufgaben.</p>
+              )}
+            </div>
+
+            <div className="border-t border-white/10 p-2">
+              <button
+                onClick={() => onAddTask(p.id)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-cyan-200"
+              >
+                <Plus className="h-4 w-4" /> Aufgabe hinzufügen
+              </button>
+            </div>
+          </section>
+        );
+      })}
+
+      <button
+        onClick={onAdd}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-3 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
+      >
+        <Plus className="h-4 w-4" /> Projekt anlegen
+      </button>
+    </div>
+  );
+}
+
+/* ---------- KPI-SF ---------- */
+
+function Kpi({ kpi, onSet, onClear, now }) {
+  const file = useRef(null);
+  const [grid, setGrid] = useState(null);
+  const [head, setHead] = useState([]);
+  const [fname, setFname] = useState("");
+  const [cName, setCName] = useState("");
+  const [cVal, setCVal] = useState("");
+  const [cCat, setCCat] = useState("");
+  const [week, setWeek] = useState("");
+  const [err, setErr] = useState("");
+
+  const pick = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setErr("");
+    try {
+      const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {
+        header: 1,
+        defval: "",
+        raw: false,
+      });
+      const clean = rows.filter((r) => r.some((c) => String(c).trim() !== ""));
+      if (clean.length < 2) throw new Error("leer");
+      setHead(clean[0].map((h, i) => (String(h).trim() ? String(h).trim() : `Spalte ${i + 1}`)));
+      setGrid(clean.slice(1));
+      setFname(f.name);
+      setCName("");
+      setCVal("");
+      setCCat("");
+    } catch {
+      setErr("Datei konnte nicht gelesen werden. Unterstützt: .xlsx, .xls, .csv");
+    }
+    e.target.value = "";
+  };
+
+  const num = (v) => {
+    const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
+    return isNaN(n) ? 0 : n;
+  };
+
+  /* Auswertung je Mitarbeiter */
+  const build = () => {
+    if (!grid || cName === "") return null;
+    const map = {};
+    grid.forEach((r) => {
+      const who = String(r[Number(cName)] ?? "").trim();
+      if (!who) return;
+      const v = cVal === "" ? 1 : num(r[Number(cVal)]);
+      const cat = cCat === "" ? "" : String(r[Number(cCat)] ?? "").trim() || "Ohne";
+      map[who] ||= { name: who, sum: 0, rows: 0, cats: {} };
+      map[who].sum += v;
+      map[who].rows += 1;
+      if (cat) map[who].cats[cat] = (map[who].cats[cat] || 0) + v;
+    });
+    const list = Object.values(map).sort((a, b) => b.sum - a.sum);
+    const total = list.reduce((s, x) => s + x.sum, 0);
+    const cats = [...new Set(list.flatMap((x) => Object.keys(x.cats)))].sort();
+    return {
+      week: week.trim(),
+      file: fname,
+      at: Date.now(),
+      unit: cVal === "" ? "Zeilen" : head[Number(cVal)],
+      list,
+      total,
+      cats,
+    };
+  };
+
+  const preview = build();
+
+  /* --- Gespeicherte Auswertung --- */
+  if (kpi && !grid) {
+    const max = Math.max(1, ...kpi.list.map((x) => x.sum));
+    const avg = kpi.list.length ? kpi.total / kpi.list.length : 0;
+    return (
+      <div className="space-y-4">
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-[17px] font-semibold">
+              {kpi.week ? `Woche ${kpi.week}` : "Auswertung"}
+            </span>
+            <span className="text-sm text-zinc-500">
+              {kpi.list.length} Mitarbeiter · {kpi.total.toLocaleString("de-DE")} {kpi.unit}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-zinc-600">
+            {kpi.file} · eingelesen {stamp(kpi.at)} ({ago(kpi.at, now)})
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-white/10">
+          <div className="border-b border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500">
+            Leistung je Mitarbeiter
+          </div>
+          <div className="divide-y divide-white/5">
+            {kpi.list.map((x, i) => (
+              <div key={x.name} className="px-3 py-2.5">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className="w-6 shrink-0 text-xs tabular-nums text-zinc-600">{i + 1}.</span>
+                  <User className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{x.name}</span>
+                  <span className="shrink-0 text-[15px] font-semibold tabular-nums">
+                    {x.sum.toLocaleString("de-DE")}
+                  </span>
+                  <span
+                    className={
+                      "w-14 shrink-0 text-right text-xs tabular-nums " +
+                      (x.sum >= avg ? "text-emerald-400" : "text-zinc-600")
+                    }
+                  >
+                    {avg ? `${x.sum >= avg ? "+" : ""}${Math.round((x.sum / avg - 1) * 100)}%` : ""}
+                  </span>
+                </div>
+                <Bar pct={(x.sum / max) * 100} />
+                {Object.keys(x.cats || {}).length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5 pl-6">
+                    {Object.entries(x.cats)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([c, v]) => (
+                        <span
+                          key={c}
+                          className="rounded-md border border-white/10 px-1.5 py-0.5 text-xs text-zinc-500"
+                        >
+                          {c} <span className="tabular-nums text-zinc-400">{v.toLocaleString("de-DE")}</span>
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-3 border-t border-white/10 px-3 py-2.5 text-sm text-zinc-500">
+            <span>Ø {Math.round(avg).toLocaleString("de-DE")} pro Mitarbeiter</span>
+            <span className="flex-1" />
+            <Ghost onClick={() => file.current?.click()}>
+              <Upload className="h-4 w-4" /> Neue Woche
+            </Ghost>
+            <Ghost onClick={onClear} danger>
+              <Trash2 className="h-4 w-4" />
+            </Ghost>
+          </div>
+        </section>
+
+        <input ref={file} type="file" accept=".xlsx,.xls,.csv" onChange={pick} className="hidden" />
+      </div>
+    );
+  }
+
+  /* --- Import / Einrichtung --- */
+  return (
+    <div className="space-y-3">
+      {!grid ? (
+        <>
+          <p className="text-sm text-zinc-500">
+            Wochenliste hochladen, dann Spalten zuordnen. Die Auswertung entsteht direkt in der App
+            und ist für alle sichtbar.
+          </p>
+          <button
+            onClick={() => file.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-4 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
+          >
+            <Upload className="h-4 w-4" /> Excel-Datei hochladen
+          </button>
+        </>
+      ) : (
+        <section className="rounded-xl border border-cyan-400/30 bg-cyan-400/[0.04]">
+          <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
+            <FileSpreadsheet className="h-4 w-4 shrink-0 text-cyan-300" />
+            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{fname}</span>
+            <Ghost
+              onClick={() => {
+                setGrid(null);
+                setHead([]);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Ghost>
+          </div>
+
+          <div className="space-y-3 p-3">
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
+                Kalenderwoche
+              </span>
+              <Field
+                value={week}
+                placeholder="z. B. 30"
+                onChange={(e) => setWeek(e.target.value)}
+                className="tabular-nums"
+              />
+            </label>
+
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                { v: cName, set: setCName, label: "Mitarbeiter", empty: "— wählen —" },
+                { v: cVal, set: setCVal, label: "Menge", empty: "Zeilen zählen" },
+                { v: cCat, set: setCCat, label: "Kategorie (optional)", empty: "— keine —" },
+              ].map((f) => (
+                <label key={f.label} className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
+                    {f.label}
+                  </span>
+                  <select
+                    value={f.v}
+                    onChange={(e) => f.set(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-[15px] outline-none focus:border-cyan-400/60"
+                  >
+                    <option value="" className="bg-zinc-900">
+                      {f.empty}
+                    </option>
+                    {head.map((h, i) => (
+                      <option key={i} value={String(i)} className="bg-zinc-900">
+                        {h}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+
+            {preview ? (
+              <>
+                <div className="overflow-hidden rounded-lg border border-white/10">
+                  <div className="bg-white/[0.04] px-3 py-2 text-xs uppercase tracking-wide text-zinc-500">
+                    Vorschau · {preview.list.length} Mitarbeiter
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {preview.list.slice(0, 5).map((x) => (
+                      <div key={x.name} className="flex items-center gap-2 px-3 py-2 text-sm">
+                        <span className="min-w-0 flex-1 truncate">{x.name}</span>
+                        <span className="tabular-nums text-zinc-400">
+                          {x.sum.toLocaleString("de-DE")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    onSet(preview);
+                    setGrid(null);
+                    setHead([]);
+                  }}
+                  className="w-full rounded-lg bg-cyan-400/15 px-4 py-2.5 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25"
+                >
+                  Auswertung speichern
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-zinc-500">Spalte für Mitarbeiter wählen.</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {err && (
+        <p className="flex items-start gap-1.5 text-sm text-rose-300">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          {err}
+        </p>
+      )}
+      <input ref={file} type="file" accept=".xlsx,.xls,.csv" onChange={pick} className="hidden" />
+    </div>
+  );
+}
+
+function AreaEditor({ areas, onAdd, onDel }) {
+  const [v, setV] = useState("");
+  const submit = () => {
+    onAdd(v);
+    setV("");
+  };
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-zinc-500">
+        Diese Bereiche stehen bei der Staplerplanung zur Auswahl.
+      </p>
+      <div className="flex gap-2">
+        <Field
+          value={v}
+          placeholder="Neuer Bereich"
+          onChange={(e) => setV(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+        />
+        <button
+          onClick={submit}
+          className="shrink-0 rounded-lg bg-cyan-400/15 px-4 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25"
+        >
+          Hinzufügen
+        </button>
+      </div>
+      <div className="divide-y divide-white/5 rounded-xl border border-white/10">
+        {areas.map((a) => (
+          <div key={a} className="flex items-center gap-2 px-3 py-2.5">
+            <MapPin className="h-4 w-4 shrink-0 text-zinc-600" />
+            <span className="flex-1 text-sm">{a}</span>
+            <button
+              onClick={() => onDel(a)}
+              className="rounded-md p-1.5 text-zinc-600 transition hover:bg-rose-500/10 hover:text-rose-300"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+        {!areas.length && <p className="px-3 py-4 text-sm text-zinc-600">Keine Bereiche angelegt.</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Sync einrichten ---------- */
+
+function SyncSetup() {
+  const cur = getCfg();
+  const [bin, setBin] = useState(cur?.bin || "");
+  const [key, setKey] = useState(cur?.key || "");
+  const [msg, setMsg] = useState("");
+  const on = !!cur;
+
+  const save = async () => {
+    if (!bin.trim() || !key.trim()) return setMsg("Beide Felder ausfüllen.");
+    setMsg("Wird geprüft…");
+    setCfg({ bin: bin.trim(), key: key.trim() });
+    try {
+      await storage.get(K);
+      setMsg("Verbunden. Seite wird neu geladen…");
+      setTimeout(() => location.reload(), 800);
+    } catch (e) {
+      /* Leerer Bin ist in Ordnung, alles andere nicht */
+      if (String(e.message).includes("leer")) {
+        setMsg("Verbunden. Seite wird neu geladen…");
+        setTimeout(() => location.reload(), 800);
+      } else {
+        setCfg(null);
+        setMsg("Verbindung fehlgeschlagen. Bin-ID und Schlüssel prüfen.");
+      }
+    }
+  };
+
+  const off = () => {
+    setCfg(null);
+    location.reload();
+  };
+
+  return (
+    <section className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <RefreshCw className="h-4 w-4 shrink-0 text-zinc-500" />
+        <span className="text-[15px] font-semibold">Geräte-Sync</span>
+        <span
+          className={
+            "ml-auto rounded-md border px-2 py-0.5 text-xs " +
+            (on
+              ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
+              : "border-amber-400/30 bg-amber-400/15 text-amber-300")
+          }
+        >
+          {on ? "Geteilt" : "Nur dieses Gerät"}
+        </span>
+      </div>
+
+      {on ? (
+        <>
+          <p className="mb-2.5 text-sm text-zinc-500">
+            Alle Geräte mit denselben Zugangsdaten sehen dieselben Daten.
+          </p>
+          <Ghost onClick={off} danger>
+            Sync trennen
+          </Ghost>
+        </>
+      ) : (
+        <>
+          <p className="mb-2.5 text-sm text-zinc-500">
+            Ohne Sync bleiben die Daten nur auf diesem Gerät. Für gemeinsames Arbeiten ein
+            kostenloses Konto bei jsonbin.io anlegen, dort einen Bin erstellen und beides hier
+            eintragen — auf jedem Gerät identisch.
+          </p>
+          <div className="space-y-2">
+            <Field value={bin} placeholder="Bin-ID" onChange={(e) => setBin(e.target.value)} />
+            <Field
+              value={key}
+              placeholder="Master-Key"
+              type="password"
+              onChange={(e) => setKey(e.target.value)}
+            />
+            <button
+              onClick={save}
+              className="w-full rounded-lg bg-cyan-400/15 px-4 py-2.5 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25"
+            >
+              Verbinden
+            </button>
+          </div>
+        </>
+      )}
+
+      {msg && <p className="mt-2 text-sm text-zinc-400">{msg}</p>}
+
+      <p className="mt-3 border-t border-white/10 pt-3 text-xs text-zinc-600">
+        Der Schlüssel wird nur lokal in diesem Browser gespeichert. Keine vertraulichen Daten
+        eintragen.
+      </p>
+    </section>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Lagerboard />);
+</script>
+</body>
+</html>
