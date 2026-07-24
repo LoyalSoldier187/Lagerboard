@@ -7,110 +7,235 @@
 <title>Lagerboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128230;</text></svg>" />
 <style>
+/* ---------------------------------------------------------------
+   Lagerboard — visuelles System
+   Grundgedanke: Werkzeug für die Lagerhalle. Auf Armlänge lesbar,
+   auch bei schlechtem Licht. Ruhige Fläche, klare Kanten, Farbe
+   nur dort wo sie eine Bedeutung trägt: Status und Signal.
+   --------------------------------------------------------------- */
 :root{
-  --bg:#09090b; --fg:#f4f4f5; --dim:#a1a1aa; --dim2:#71717a; --dim3:#52525b;
-  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.25);
-  --card:rgba(255,255,255,.02); --card2:rgba(255,255,255,.04);
-  --cy:#22d3ee; --cyd:rgba(34,211,238,.15); --cyb:rgba(34,211,238,.45);
-  --em:#34d399; --am:#fbbf24; --ro:#fb7185; --sk:#38bdf8;
+  /* Flächen: kühles Anthrazit, leicht blaustichig wie lackierter Stahl */
+  --bg:#0b0e13;
+  --bg2:#0e1218;
+  --surface:#12171f;
+  --surface2:#161c26;
+  --raised:#1a212c;
+
+  /* Schrift */
+  --fg:#eef2f7;
+  --dim:#9aa7b8;
+  --dim2:#6b7887;
+  --dim3:#48535f;
+
+  /* Kanten */
+  --line:#212a36;
+  --line2:#2e3a49;
+  --line3:#3d4b5c;
+
+  /* Signal: Bernstein wie Hallenbeleuchtung und Staplerwarnleuchte */
+  --acc:#f0a830;
+  --acc-dim:rgba(240,168,48,.13);
+  --acc-line:rgba(240,168,48,.42);
+  --acc-txt:#ffcf7a;
+
+  /* Statusfarben */
+  --em:#3ecf8e; --am:#f0a830; --ro:#f2555a; --sk:#4aa8ff;
+
+  --r:10px;    /* Radius klein */
+  --r2:14px;   /* Radius Karte */
+  --sh:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--fg);
-  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
-.wrap{max-width:1000px;margin:0 auto;padding:0 16px}
-header{position:sticky;top:0;z-index:20;background:rgba(9,9,11,.96);
-  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.hrow{display:flex;align-items:center;gap:12px;padding:12px 0}
-.logo{width:36px;height:36px;flex:0 0 auto;border-radius:9px;background:var(--cyd);
-  box-shadow:inset 0 0 0 1px var(--cyb);display:flex;align-items:center;justify-content:center;font-size:19px}
-h1{font-size:17px;margin:0;font-weight:600;letter-spacing:-.01em}
-.sub{font-size:12px;color:var(--dim2);margin:1px 0 0}
-nav{display:flex;gap:4px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
+::selection{background:var(--acc-dim);color:var(--acc-txt)}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;color:var(--fg);background:
+  radial-gradient(1200px 600px at 50% -200px, #141b26 0%, transparent 70%), var(--bg);
+  background-attachment:fixed;
+  font:400 15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  font-feature-settings:"cv05","ss01";
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+@media(max-width:560px){.wrap{padding:0 14px}}
+
+/* ---------- Kopfzeile ---------- */
+header{position:sticky;top:0;z-index:20;
+  background:linear-gradient(to bottom,rgba(11,14,19,.98),rgba(11,14,19,.92));
+  backdrop-filter:blur(12px) saturate(1.2);
+  border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:14px;padding:14px 0 12px}
+.logo{width:38px;height:38px;flex:0 0 auto;border-radius:var(--r);
+  background:linear-gradient(160deg,var(--raised),var(--surface));
+  border:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.logo svg{width:19px;height:19px;color:var(--acc)}
+h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.015em;line-height:1.2}
+.sub{font-size:12px;color:var(--dim2);margin:2px 0 0;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums}
+
+/* Reiter: unterstrichen statt Pillen — ruhiger, wirkt weniger nach Spielzeug */
+nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
 nav::-webkit-scrollbar{display:none}
-nav button{flex:0 0 auto;display:flex;align-items:center;gap:6px;border:0;background:none;
-  color:var(--dim2);font:500 14px system-ui;padding:8px 12px;border-radius:9px;cursor:pointer}
-nav button:hover{background:rgba(255,255,255,.05);color:var(--fg)}
-nav button.on{background:var(--cyd);color:#a5f3fc;box-shadow:inset 0 0 0 1px var(--cyb)}
-main{padding:16px 0 96px}
-section.card{border:1px solid var(--line);border-radius:12px;background:var(--card)}
-.pad{padding:12px}
-.hd{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
-.hd .t{flex:1;min-width:0;font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stack>*+*{margin-top:12px}
-.stack4>*+*{margin-top:16px}
-.muted{color:var(--dim2);font-size:14px}
-.tiny{color:var(--dim3);font-size:12px}
-.up{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim2)}
-.num{font-variant-numeric:tabular-nums}
+nav button{flex:0 0 auto;display:flex;align-items:center;gap:7px;border:0;background:none;
+  color:var(--dim2);font:500 13.5px/1 inherit;letter-spacing:.005em;
+  padding:11px 13px 12px;cursor:pointer;position:relative;white-space:nowrap;
+  border-bottom:2px solid transparent;transition:color .15s}
+nav button svg{width:15px;height:15px;opacity:.75}
+nav button:hover{color:var(--dim)}
+nav button.on{color:var(--fg);border-bottom-color:var(--acc)}
+nav button.on svg{opacity:1;color:var(--acc)}
+main{padding:22px 0 110px}
+
+/* ---------- Karten ---------- */
+section.card{border:1px solid var(--line);border-radius:var(--r2);
+  background:linear-gradient(to bottom,var(--surface),var(--bg2));
+  box-shadow:var(--sh);overflow:hidden}
+.pad{padding:14px 16px}
+.hd{display:flex;align-items:center;gap:10px;padding:12px 16px;
+  border-bottom:1px solid var(--line);background:rgba(255,255,255,.015)}
+.hd .t{flex:1;min-width:0;font-weight:600;font-size:14.5px;letter-spacing:-.005em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hd svg{color:var(--dim2)}
+.stack>*+*{margin-top:14px}
+.stack4>*+*{margin-top:18px}
+
+/* ---------- Typografie ---------- */
+.muted{color:var(--dim2);font-size:13.5px}
+.tiny{color:var(--dim3);font-size:11.5px;font-variant-numeric:tabular-nums}
+.up{display:block;font-size:10.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--dim2)}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* ---------- Eingaben ---------- */
 input,select,textarea{font:inherit;color:var(--fg)}
-.f{width:100%;border:1px solid var(--line);background:rgba(0,0,0,.3);border-radius:9px;
-  padding:10px 12px;font-size:15px;outline:none}
-.f:focus{border-color:var(--cyb);background:rgba(0,0,0,.5)}
+.f{width:100%;border:1px solid var(--line2);background:#0a0d12;border-radius:var(--r);
+  padding:10px 13px;font-size:14.5px;outline:none;transition:border-color .15s,box-shadow .15s}
+.f:hover{border-color:var(--line3)}
+.f:focus{border-color:var(--acc-line);box-shadow:0 0 0 3px var(--acc-dim)}
 .f::placeholder{color:var(--dim3)}
-select.f{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--dim2) 50%),linear-gradient(135deg,var(--dim2) 50%,transparent 50%);
-  background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
-.inl{width:100%;background:none;border:0;outline:none;padding:6px 2px;font-size:15px;color:var(--fg)}
-.inl:focus{color:#a5f3fc}
+select.f{appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--dim2) 50%),linear-gradient(135deg,var(--dim2) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 51%,calc(100% - 12px) 51%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:36px}
+.inl{width:100%;background:none;border:0;outline:none;padding:7px 6px;font-size:14.5px;
+  color:var(--fg);border-radius:6px;transition:background .12s,box-shadow .12s}
+.inl:hover{background:rgba(255,255,255,.03)}
+.inl:focus{background:#0a0d12;box-shadow:0 0 0 1px var(--acc-line)}
 .inl::placeholder{color:var(--dim3)}
+textarea.f{line-height:1.55}
+
+/* ---------- Schaltflächen ---------- */
 button{font:inherit;cursor:pointer}
-.btn{border:1px solid var(--line);background:none;color:var(--dim);border-radius:9px;
-  padding:8px 12px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
-.btn:hover{border-color:var(--line2);background:rgba(255,255,255,.05);color:var(--fg)}
-.btn:active{transform:scale(.97)}
-.btn.pri{background:var(--cyd);color:#a5f3fc;box-shadow:inset 0 0 0 1px var(--cyb);border-color:transparent}
-.btn.pri:hover{background:rgba(34,211,238,.25)}
+.btn{border:1px solid var(--line2);background:linear-gradient(to bottom,var(--raised),var(--surface2));
+  color:var(--dim);border-radius:var(--r);padding:9px 14px;font-size:13.5px;font-weight:550;
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:all .14s}
+.btn:hover{border-color:var(--line3);color:var(--fg)}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:15px;height:15px}
+.btn.pri{background:linear-gradient(to bottom,#f5b649,var(--acc));color:#231603;
+  border-color:#c98a20;font-weight:650;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 3px rgba(0,0,0,.4)}
+.btn.pri:hover{filter:brightness(1.07);color:#231603}
 .btn.dan{color:var(--ro)}
-.btn.dan:hover{background:rgba(251,113,133,.10);border-color:rgba(251,113,133,.4)}
-.btn.warn{background:rgba(251,113,133,.2);color:#fecdd3;box-shadow:inset 0 0 0 1px rgba(251,113,133,.5);border-color:transparent}
-.btn[disabled]{opacity:.4;cursor:default}
+.btn.dan:hover{border-color:rgba(242,85,90,.5);background:rgba(242,85,90,.1)}
+.btn[disabled]{opacity:.35;cursor:default;transform:none}
 .btn.w{width:100%;justify-content:center}
-.dash{width:100%;border:1px dashed var(--line2);border-radius:12px;background:none;color:var(--dim);
-  padding:14px;font-weight:500;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px}
-.dash:hover{border-color:var(--cyb);color:#a5f3fc}
-.ico{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-3px}
-.row{display:flex;align-items:center;gap:8px}
+.dash{width:100%;border:1px dashed var(--line3);border-radius:var(--r2);background:none;
+  color:var(--dim2);padding:15px;font-weight:550;font-size:13.5px;
+  display:flex;align-items:center;justify-content:center;gap:9px;transition:all .15s}
+.dash:hover{border-color:var(--acc-line);color:var(--acc-txt);background:rgba(240,168,48,.04)}
+.dash svg{width:16px;height:16px}
+.iconbtn{border:0;background:none;color:var(--dim3);padding:7px;border-radius:7px;line-height:0;
+  transition:all .13s}
+.iconbtn:hover{background:rgba(242,85,90,.12);color:var(--ro)}
+.iconbtn svg{width:15px;height:15px}
+
+/* ---------- Layout ---------- */
+.row{display:flex;align-items:center;gap:9px}
 .wrapf{display:flex;flex-wrap:wrap;gap:6px}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
-.tile{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03);
-  padding:10px 12px;text-align:left;color:var(--fg)}
-.tile.on{border-color:var(--cyb);background:rgba(34,211,238,.10)}
-.tile b{display:block;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
-.tile span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim2)}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+
+/* Kennzahl-Kacheln: die Zahl trägt, das Etikett ordnet sich unter */
+.tile{border:1px solid var(--line);border-radius:var(--r2);
+  background:linear-gradient(to bottom,var(--surface),var(--bg2));
+  padding:12px 14px 11px;text-align:left;color:var(--fg);
+  box-shadow:var(--sh);transition:all .15s;position:relative;overflow:hidden}
+.tile:hover{border-color:var(--line3)}
+.tile.on{border-color:var(--acc-line);background:linear-gradient(to bottom,#1c1c16,var(--bg2))}
+.tile.on::before{content:"";position:absolute;inset:0 auto 0 0;width:2px;background:var(--acc)}
+.tile b{display:block;font-size:26px;font-weight:640;letter-spacing:-.03em;line-height:1.05;
+  font-variant-numeric:tabular-nums;margin-bottom:5px}
+.tile span{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--dim2);
+  font-weight:500;letter-spacing:.01em}
 .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
-.chip{border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12px;
-  font-weight:500;background:none;color:var(--dim2)}
-.chip:hover{border-color:var(--line2)}
+
+/* Status-Marken */
+.chip{border:1px solid var(--line2);border-radius:7px;padding:5px 10px;font-size:12px;
+  font-weight:550;background:var(--surface2);color:var(--dim2);
+  display:inline-flex;align-items:center;gap:5px;transition:all .13s;letter-spacing:.005em}
+.chip:hover{border-color:var(--line3);color:var(--dim)}
 .chip.on{color:#fff}
-.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+
+/* ---------- Tabelle ---------- */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r2);
+  background:linear-gradient(to bottom,var(--surface),var(--bg2));box-shadow:var(--sh)}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--dim2);font-weight:500;padding:10px 12px;background:var(--card2);white-space:nowrap}
-td{padding:2px 4px;border-top:1px solid rgba(255,255,255,.05)}
-tbody tr:hover{background:rgba(255,255,255,.02)}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--dim2);font-weight:650;padding:11px 12px;white-space:nowrap;
+  background:rgba(255,255,255,.02);border-bottom:1px solid var(--line2)}
+td{padding:3px 6px;border-top:1px solid var(--line)}
+tbody tr:first-child td{border-top:0}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:rgba(255,255,255,.022)}
 td .inl{padding:8px}
-td .inl:focus{background:rgba(0,0,0,.4);border-radius:6px}
-.iconbtn{border:0;background:none;color:var(--dim3);padding:8px;border-radius:7px;line-height:0}
-.iconbtn:hover{background:rgba(251,113,133,.10);color:var(--ro)}
-.divide>*+*{border-top:1px solid rgba(255,255,255,.05)}
-.bar{height:8px;width:100%;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
-.bar>i{display:block;height:100%;border-radius:99px;background:var(--cy);transition:width .5s}
-.bar>i.done{background:var(--em)}
-.chk{width:18px;height:18px;flex:0 0 auto;border:1px solid var(--line2);border-radius:5px;
-  background:none;display:flex;align-items:center;justify-content:center;padding:0;color:transparent}
-.chk.on{border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.2);color:var(--em)}
-.banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;border:1px solid var(--line);
-  border-radius:12px;background:rgba(255,255,255,.03);padding:10px 12px}
-.banner.warn{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.07)}
+
+.divide>*+*{border-top:1px solid var(--line)}
+
+/* ---------- Fortschritt ---------- */
+.bar{height:6px;width:100%;border-radius:99px;background:#0a0d12;overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.bar>i{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,#d4901f,var(--acc));transition:width .6s cubic-bezier(.4,0,.2,1)}
+.bar>i.done{background:linear-gradient(90deg,#2fae76,var(--em))}
+
+.chk{width:19px;height:19px;flex:0 0 auto;border:1px solid var(--line3);border-radius:6px;
+  background:#0a0d12;display:flex;align-items:center;justify-content:center;padding:0;
+  color:transparent;transition:all .14s}
+.chk:hover{border-color:var(--dim2)}
+.chk.on{border-color:var(--em);background:rgba(62,207,142,.16);color:var(--em)}
+.chk svg{width:12px;height:12px}
+
+/* ---------- Hinweisleiste ---------- */
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;
+  border:1px solid var(--line);border-left:3px solid var(--line3);
+  border-radius:var(--r);background:var(--surface);padding:11px 14px}
+.banner.warn{border-color:rgba(240,168,48,.3);border-left-color:var(--acc);
+  background:linear-gradient(to right,rgba(240,168,48,.07),rgba(240,168,48,.02))}
+.banner svg{width:16px;height:16px}
+
+.ico{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-3px}
 .hide{display:none}
-.center{min-height:60vh;display:flex;align-items:center;justify-content:center;color:var(--dim2);gap:8px}
+.center{min-height:60vh;display:flex;align-items:center;justify-content:center;
+  color:var(--dim2);gap:9px;font-size:14px}
 .spin{animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Sanfter Auftritt beim Reiterwechsel */
+main>.wrap>div{animation:in .22s cubic-bezier(.2,0,.2,1)}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){
+  *,*::before{animation:none!important;transition:none!important}
+}
 @media(max-width:560px){
   .grid4{grid-template-columns:repeat(2,1fr)}
-  .tile b{font-size:20px}
+  .tile b{font-size:22px}
+  .hrow{padding:12px 0 10px}
+  main{padding:16px 0 90px}
+  .pad{padding:12px 13px}
+  .hd{padding:11px 13px}
 }
 </style>
 </head>
@@ -451,6 +576,7 @@ const START = () => ({
   projects: [],
   kpi: null,
   schott: [],
+  probs: [],
   rev: 0
 });
 
@@ -462,6 +588,7 @@ const S = {
   tab: "apps",
   fArt: "", fStatus: "",
   fScho: "",
+  fProb: "",
   now: Date.now(),
   lastPull: 0,
   sync: "idle",
@@ -517,6 +644,7 @@ const TABS = [
   { id: "proj", label: "Spezialprojekte",       ico: "target" },
   { id: "kpi",  label: "KPI-SF",                ico: "chart" },
   { id: "scho", label: "Schott-Umlagerungen",   ico: "sheet" },
+  { id: "prob", label: "Probleme",              ico: "alert" },
   { id: "cfg",  label: "Bereiche",              ico: "gear" }
 ];
 
@@ -545,7 +673,7 @@ function render() {
   root.innerHTML =
     '<header><div class="wrap">' +
       '<div class="hrow">' +
-        '<div class="logo">📦</div>' +
+        '<div class="logo">' + ico("box") + '</div>' +
         '<div style="flex:1;min-width:0">' +
           '<h1>Lagerboard</h1>' +
           '<p class="sub" id="hsub">' + act + "/" + S.data.drivers.length +
@@ -579,6 +707,7 @@ function render() {
   else if (S.tab === "proj") inner.innerHTML = viewProj();
   else if (S.tab === "kpi")  inner.innerHTML = viewKpi();
   else if (S.tab === "scho") inner.innerHTML = viewSchott();
+  else if (S.tab === "prob") inner.innerHTML = viewProbs();
   else inner.innerHTML = viewCfg();
   b.appendChild(inner);
   paintHeader();
@@ -658,7 +787,6 @@ function viewFree() {
       '</div>';
   }
 
-  const nonPal = free.filter((r) => !isPal(r.art));
 
   const tiles = STATUS.map((s) =>
     '<button class="tile ' + (S.fStatus === s.id ? "on" : "") + '" data-fstatus="' + s.id + '">' +
@@ -670,7 +798,7 @@ function viewFree() {
       const c = {};
       STATUS.forEach((s) => c[s.id] = g.rows.filter((r) => (r.status || "frei") === s.id).length);
       return '<button class="pad" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;width:100%;' +
-        'background:' + (S.fArt === g.art ? "rgba(34,211,238,.1)" : "none") + ';border:0;color:var(--fg);text-align:left" ' +
+        'background:' + (S.fArt === g.art ? "rgba(240,168,48,.09)" : "none") + ';border:0;color:var(--fg);text-align:left" ' +
         'data-fart="' + esc(g.art) + '">' +
         '<span style="flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
           esc(g.art) + '</span>' +
@@ -700,17 +828,8 @@ function viewFree() {
   }).join("");
 
   return '<div class="stack">' +
-    (S.imp ? impPanel() : '<button class="dash" data-act="pickfree">' + ico("up") + 'Excel-Tabelle einlesen</button>') +
+    (S.imp ? impPanel() : '<button class="dash" data-act="openpaste">' + ico("plus") + 'Liste eingeben oder einfügen</button>') +
     banner +
-    '<section class="card pad"><div class="row" style="margin-bottom:8px">' + ico("trash") +
-      '<b style="font-size:15px">Aufräumen</b></div>' +
-      '<p class="muted" style="margin:0 0 10px">Gilt für alle Geräte und ist endgültig.</p>' +
-      '<div class="row" style="gap:8px"><input class="f num" id="pfx" value="65-" placeholder="z. B. 65-" />' +
-      '<button class="btn" data-act="delpfx">Nummernkreis löschen</button></div>' +
-      '<div class="row" style="margin-top:10px"><span class="muted" style="flex:1">' +
-      (nonPal.length ? nonPal.length + " Plätze sind weder Euro- noch Einwegpalettenlager." : "Nur Paletten-Plätze vorhanden.") +
-      '</span>' + (nonPal.length ? '<button class="btn" data-act="delnonpal">Andere Arten entfernen</button>' : "") + '</div>' +
-    '</section>' +
     '<div class="grid4">' + tiles + '</div>' + byArt +
     '<div class="row"><span class="muted" style="flex:1">' +
       (shown.length === free.length ? free.length + " Lagerorte erfasst."
@@ -726,28 +845,33 @@ function viewFree() {
 function impPanel() {
   const i = S.imp;
   const ready = impRows();
-  return '<section class="card" style="border-color:var(--cyb);background:rgba(34,211,238,.04)">' +
-    '<div class="hd">' + ico("sheet") + '<span class="t">' + esc(i.fname) + '</span>' +
+  return '<section class="card" style="border-color:var(--acc-line);background:linear-gradient(to bottom,#1a1710,var(--bg2))">' +
+    '<div class="hd">' + ico("plus") + '<span class="t">Lagerorte eingeben</span>' +
       '<button class="iconbtn" data-act="impcancel">' + ico("x") + '</button></div>' +
     '<div class="pad stack">' +
-      (i.sheets.length > 1 ? '<label class="up">Tabellenblatt<select class="f" data-act="impsheet" style="margin-top:4px">' +
-        i.sheets.map((s, n) => '<option value="' + n + '"' + (n === i.si ? " selected" : "") + '>' +
-          esc(s.name) + "</option>").join("") + "</select></label>" : "") +
-      '<button class="btn w" style="justify-content:flex-start" data-act="impskip">' +
-        '<span class="chk ' + (i.skip ? "on" : "") + '">' + ico("check") + '</span>' +
-        'Erste Zeile ist eine Überschrift</button>' +
+      '<p class="muted" style="margin:0">Eine Zeile je Lagerort. Platzart mit Tabulator, ' +
+        'Semikolon oder Komma abtrennen — oder aus Excel direkt hier hineinkopieren.</p>' +
+      '<textarea class="f" id="impfeed" rows="8" spellcheck="false" ' +
+        'style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;resize:vertical" ' +
+        'placeholder="64-01-01; Europalettenlager\n64-01-02; Einwegpalettenlager\n64-01-03; Europalettenlager">' +
+        esc(i.text) + '</textarea>' +
+      '<button class="btn w" data-act="impread">' + ico("refresh") + 'Vorschau erstellen</button>' +
       '<button class="btn w" style="justify-content:flex-start" data-act="imppal">' +
         '<span class="chk ' + (i.pal ? "on" : "") + '">' + ico("check") + '</span>' +
         'Nur Europaletten- und Einwegpalettenlager</button>' +
       '<label class="up">Nur diesen Nummernkreis (optional)' +
         '<input class="f num" id="imponly" value="' + esc(i.only) + '" placeholder="z. B. 64-" style="margin-top:4px" /></label>' +
-      '<div class="tblwrap"><table><thead><tr><th>Lagerort (A)</th><th>Platzart (B)</th></tr></thead><tbody>' +
+      '<div class="tblwrap"><table><thead><tr><th>Lagerort</th><th>Platzart</th></tr></thead><tbody>' +
         (ready.slice(0, 5).map((r) => '<tr><td style="padding:8px 12px" class="num">' + esc(r.ort || "—") +
           '</td><td style="padding:8px 12px;color:var(--dim)">' + esc(r.art || "—") + "</td></tr>").join("") ||
-          '<tr><td colspan="2" class="muted" style="padding:12px">Keine Zeilen übrig.</td></tr>') +
+          '<tr><td colspan="2" class="muted" style="padding:12px">Noch nichts erkannt.</td></tr>') +
         '</tbody></table></div>' +
       '<p class="muted" style="margin:0">' + ready.length + " Zeilen erkannt" +
         (ready.length > 5 ? " (Vorschau zeigt 5)" : "") + ".</p>" +
+      (!ready.length && i.text.trim() && i.pal
+        ? '<p class="muted" style="margin:0;color:#fde68a">Nichts übrig: Der Haken oben lässt nur ' +
+          'Euro- und Einwegpalettenlager durch. Wenn du nur Lagerorte ohne Platzart eingibst, ' +
+          'nimm den Haken heraus.</p>' : "") +
       '<div class="row"><button class="btn pri" style="flex:1" data-act="impappend"' +
         (ready.length ? "" : " disabled") + '>Anhängen</button>' +
         '<button class="btn" style="flex:1" data-act="impreplace"' +
@@ -755,13 +879,21 @@ function impPanel() {
     '</div></section>';
 }
 
+/* Eingegebenen Text in Zeilen zerlegen.
+   Getrennt wird an Tabulator, Semikolon oder Komma — je nachdem was vorkommt. */
 function impRows() {
   const i = S.imp;
-  if (!i) return [];
-  let g = i.sheets[i.si].grid.map((r) =>
-    ({ ort: String(r[0] == null ? "" : r[0]).trim(), art: String(r[1] == null ? "" : r[1]).trim() }))
-    .filter((r) => r.ort || r.art);
-  if (i.skip) g = g.slice(1);
+  if (!i || !i.text.trim()) return [];
+  let g = i.text.split(/\r?\n/).map((line) => {
+    const t = line.trim();
+    if (!t) return null;
+    let parts;
+    if (t.indexOf("\t") > -1) parts = t.split("\t");
+    else if (t.indexOf(";") > -1) parts = t.split(";");
+    else if (t.indexOf(",") > -1) parts = t.split(",");
+    else parts = [t];
+    return { ort: (parts[0] || "").trim(), art: (parts[1] || "").trim() };
+  }).filter((r) => r && (r.ort || r.art));
   if (i.only.trim()) g = g.filter((r) => r.ort.indexOf(i.only.trim()) === 0);
   if (i.pal) g = g.filter((r) => isPal(r.art));
   return g.map((r) => ({ ort: r.ort, art: r.art, kapazitaet: "", bemerkung: "", status: "frei" }));
@@ -770,9 +902,9 @@ function impRows() {
 /* ---------------- Reiter: Stapler ---------------- */
 function viewCrew() {
   return '<div class="stack">' + S.data.drivers.map((d) =>
-    '<section class="card pad" style="' + (d.area ? "border-color:var(--cyb)" : "") + '">' +
+    '<section class="card pad" style="' + (d.area ? "border-color:var(--acc-line)" : "") + '">' +
       '<div class="row" style="margin-bottom:10px">' +
-        '<span style="color:' + (d.area ? "var(--cy)" : "var(--dim3)") + '">' + ico("truck") + '</span>' +
+        '<span style="color:' + (d.area ? "var(--acc)" : "var(--dim3)") + '">' + ico("truck") + '</span>' +
         '<input class="inl" style="font-weight:600" value="' + esc(d.name) + '" data-drv="' + d.id + '" data-k="name" />' +
         '<span class="tiny num">' + clock(d.at) + '</span></div>' +
       '<div class="wrapf">' +
@@ -780,7 +912,7 @@ function viewCrew() {
           (!d.area ? ' style="border-color:var(--dim);color:var(--fg)"' : "") +
           ' data-area="' + d.id + '|">Frei</button>' +
         S.data.areas.map((a) =>
-          '<button class="chip"' + (d.area === a ? ' style="border-color:var(--cyb);background:var(--cyd);color:#a5f3fc"' : "") +
+          '<button class="chip"' + (d.area === a ? ' style="border-color:var(--acc-line);background:var(--acc-dim);color:var(--acc-txt)"' : "") +
           ' data-area="' + d.id + "|" + esc(a) + '">' + esc(a) + "</button>").join("") +
       '</div>' +
       '<input class="inl" style="margin-top:8px;color:var(--dim);font-size:14px" value="' + esc(d.note) +
@@ -813,10 +945,10 @@ function viewProj() {
         '<span class="muted" style="width:96px;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(l.o) + '</span>' +
         '<span style="flex:1;display:flex;height:16px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.05)">' +
           '<i style="width:' + (l.done / mx * 100) + '%;background:rgba(52,211,153,.7)"></i>' +
-          '<i style="width:' + (l.open / mx * 100) + '%;background:rgba(34,211,238,.7)"></i></span>' +
+          '<i style="width:' + (l.open / mx * 100) + '%;background:var(--sk)"></i></span>' +
         '<span class="tiny num" style="width:52px;text-align:right">' + l.done + "/" + (l.done + l.open) + "</span></div>").join("") +
       '<p class="tiny" style="margin:8px 0 0"><i class="dot" style="background:rgba(52,211,153,.7);display:inline-block"></i> erledigt' +
-      ' &nbsp; <i class="dot" style="background:rgba(34,211,238,.7);display:inline-block"></i> offen</p></div>' : "") +
+      ' &nbsp; <i class="dot" style="background:var(--sk);display:inline-block"></i> offen</p></div>' : "") +
     '</section>' : "";
 
   const list = ps.map((p) => {
@@ -868,7 +1000,7 @@ function viewKpi() {
     const opts = (sel) => heads.map((h, n) =>
       '<option value="' + n + '"' + (String(sel) === String(n) ? " selected" : "") + '>' +
       esc(String(h).trim() || "Spalte " + (n + 1)) + "</option>").join("");
-    return '<section class="card" style="border-color:var(--cyb);background:rgba(34,211,238,.04)">' +
+    return '<section class="card" style="border-color:var(--acc-line);background:linear-gradient(to bottom,#1a1710,var(--bg2))">' +
       '<div class="hd">' + ico("sheet") + '<span class="t">' + esc(i.fname) + '</span>' +
         '<button class="iconbtn" data-act="kcancel">' + ico("x") + '</button></div>' +
       '<div class="pad stack">' +
@@ -1023,6 +1155,47 @@ function viewSchott() {
     '<button class="dash" data-act="addscho">' + ico("plus") + 'Umlagerung hinzufügen</button></div>';
 }
 
+/* ---------------- Reiter: Probleme ---------------- */
+function viewProbs() {
+  const list = S.data.probs || [];
+  const open = list.filter((r) => !r.ok);
+  const done = list.filter((r) => r.ok);
+  const shown = S.fProb === "erledigt" ? done : S.fProb === "offen" ? open : list;
+
+  const tiles =
+    '<button class="tile ' + (S.fProb === "" ? "on" : "") + '" data-fprob="">' +
+      '<b>' + list.length + '</b><span>Gesamt</span></button>' +
+    '<button class="tile ' + (S.fProb === "offen" ? "on" : "") + '" data-fprob="offen">' +
+      '<b>' + open.length + '</b><span><i class="dot" style="background:var(--ro)"></i>Offen</span></button>' +
+    '<button class="tile ' + (S.fProb === "erledigt" ? "on" : "") + '" data-fprob="erledigt">' +
+      '<b>' + done.length + '</b><span><i class="dot" style="background:var(--em)"></i>Erledigt</span></button>';
+
+  const cards = shown.map((r) =>
+    '<section class="card pad" style="' + (r.ok ? "opacity:.6" : "border-color:rgba(251,113,133,.35)") + '">' +
+      '<div class="row" style="margin-bottom:8px">' +
+        '<button class="chk ' + (r.ok ? "on" : "") + '" data-probok="' + r.id + '" ' +
+          'title="' + (r.ok ? "Wieder öffnen" : "Als erledigt markieren") + '">' + ico("check") + '</button>' +
+        '<input class="inl num" style="font-weight:600' + (r.ok ? ";text-decoration:line-through;color:var(--dim3)" : "") +
+          '" value="' + esc(r.ort) + '" placeholder="Lagerort" data-prob="' + r.id + '" data-k="ort" />' +
+        '<span class="tiny num">' + (r.at ? ago(r.at, S.now) : "") + '</span>' +
+        '<button class="iconbtn" data-delprob="' + r.id + '">' + ico("x") + '</button>' +
+      '</div>' +
+      '<textarea class="f" rows="2" style="resize:vertical;font-size:14px" ' +
+        'placeholder="Was ist mit diesem Platz? Beschreibung, Ursache, was zu tun ist…" ' +
+        'data-prob="' + r.id + '" data-k="note">' + esc(r.note) + '</textarea>' +
+    '</section>').join("");
+
+  return '<div class="stack">' +
+    '<div class="grid3">' + tiles + '</div>' +
+    '<div class="row"><span class="muted" style="flex:1">' +
+      (S.fProb ? shown.length + " von " + list.length + " gezeigt"
+               : list.length + (list.length === 1 ? " Problem erfasst" : " Probleme erfasst")) + '</span>' +
+      (S.fProb ? '<button class="btn" data-act="clearprob">' + ico("x") + 'Filter zurücksetzen</button>' : "") +
+    '</div>' +
+    (cards || '<p class="muted">Keine Einträge.</p>') +
+    '<button class="dash" data-act="addprob">' + ico("plus") + 'Problem eintragen</button></div>';
+}
+
 /* ---------------- Reiter: Bereiche + Sync ---------------- */
 function viewCfg() {
   const c = getCfg();
@@ -1094,37 +1267,20 @@ document.addEventListener("click", async (e) => {
   if (g("data-fstatus")) { S.fStatus = S.fStatus === g("data-fstatus") ? "" : g("data-fstatus"); return render(); }
   if (g("data-fart")) { S.fArt = S.fArt === g("data-fart") ? "" : g("data-fart"); return render(); }
   if (act === "clearf") { S.fArt = S.fStatus = ""; return render(); }
-  if (act === "delpfx") {
-    const p = ($("#pfx").value || "").trim();
-    if (!p) return;
-    const n = S.data.free.filter((r) => String(r.ort || "").trim().indexOf(p) === 0).length;
-    if (!n) return alert("Keine Treffer für " + p);
-    if (!confirm(n + " Lagerorte mit " + p + " wirklich löschen?\nGilt für alle Geräte.")) return;
-    return commit((d) => d.free = d.free.filter((r) => String(r.ort || "").trim().indexOf(p) !== 0));
-  }
-  if (act === "delnonpal") {
-    const n = S.data.free.filter((r) => !isPal(r.art)).length;
-    if (!confirm(n + " Plätze anderer Art wirklich löschen?\nGilt für alle Geräte.")) return;
-    return commit((d) => d.free = d.free.filter((r) => isPal(r.art)));
-  }
 
   /* Import Lagerorte */
-  if (act === "pickfree") {
-    const f = await pick(".xlsx,.xls,.csv");
-    if (!f) return;
-    try {
-      const sheets = await readSpreadsheet(f);
-      S.imp = { fname: f.name, sheets, si: 0, skip: true, pal: true, only: "" };
-      render();
-    } catch (err) { alert("Datei konnte nicht gelesen werden.\n" + err.message); }
-    return;
-  }
+  if (act === "openpaste") { S.imp = { text: "", pal: true, only: "" }; return render(); }
   if (act === "impcancel") { S.imp = null; return render(); }
-  if (act === "impskip") { S.imp.skip = !S.imp.skip; S.imp.only = $("#imponly").value; return render(); }
-  if (act === "imppal") { S.imp.pal = !S.imp.pal; S.imp.only = $("#imponly").value; return render(); }
+  const grab = () => {
+    const ta = $("#impfeed"), on = $("#imponly");
+    if (ta) S.imp.text = ta.value;
+    if (on) S.imp.only = on.value;
+  };
+  if (act === "impread") { grab(); return render(); }
+  if (act === "imppal") { grab(); S.imp.pal = !S.imp.pal; return render(); }
   if (act === "impappend" || act === "impreplace") {
-    S.imp.only = $("#imponly").value;
-    const rows = impRows(), src = S.imp.fname, mode = act === "impreplace";
+    grab();
+    const rows = impRows(), src = "Eingabe", mode = act === "impreplace";
     if (mode && !confirm("Bestehende Tabelle durch " + rows.length + " Zeilen ersetzen?")) return;
     S.imp = null;
     return commit((d) => {
@@ -1181,6 +1337,16 @@ document.addEventListener("click", async (e) => {
   if (t.hasAttribute("data-fscho")) { S.fScho = g("data-fscho"); return render(); }
   if (act === "clearscho") { S.fScho = ""; return render(); }
 
+  /* Probleme */
+  if (act === "addprob") return commit((d) => (d.probs = d.probs || []).unshift(
+    { id: uid(), ort: "", note: "", ok: false, at: Date.now() }));
+  if (g("data-delprob")) return commit((d) => d.probs = d.probs.filter((r) => r.id !== g("data-delprob")));
+  if (g("data-probok")) return commit((d) => {
+    const r = d.probs.find((x) => x.id === g("data-probok")); r.ok = !r.ok;
+  });
+  if (t.hasAttribute("data-fprob")) { S.fProb = g("data-fprob"); return render(); }
+  if (act === "clearprob") { S.fProb = ""; return render(); }
+
   /* Bereiche */
   if (act === "addarea") {
     const v = ($("#newarea").value || "").trim();
@@ -1231,6 +1397,8 @@ document.addEventListener("input", (e) => {
     const x = d.drivers.find((y) => y.id === el.getAttribute("data-drv"));
     x[k] = el.value; if (k === "note") x.at = Date.now();
   });
+  if (el.getAttribute("data-prob")) return set((d) =>
+    d.probs.find((r) => r.id === el.getAttribute("data-prob"))[k] = el.value);
   if (el.getAttribute("data-scho")) return set((d) =>
     d.schott.find((r) => r.id === el.getAttribute("data-scho"))[k] = el.value);
   if (el.getAttribute("data-prj")) return set((d) =>
