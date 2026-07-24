@@ -6,2093 +6,1138 @@
 <meta name="theme-color" content="#09090b" />
 <title>Lagerboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128230;</text></svg>" />
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  html { background:#09090b; }
-  body { margin:0; -webkit-tap-highlight-color:transparent; }
-  input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(.6); }
-  ::-webkit-scrollbar { height:8px; width:8px; }
-  ::-webkit-scrollbar-thumb { background:#3f3f46; border-radius:4px; }
+:root{
+  --bg:#09090b; --fg:#f4f4f5; --dim:#a1a1aa; --dim2:#71717a; --dim3:#52525b;
+  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.25);
+  --card:rgba(255,255,255,.02); --card2:rgba(255,255,255,.04);
+  --cy:#22d3ee; --cyd:rgba(34,211,238,.15); --cyb:rgba(34,211,238,.45);
+  --em:#34d399; --am:#fbbf24; --ro:#fb7185; --sk:#38bdf8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+.wrap{max-width:1000px;margin:0 auto;padding:0 16px}
+header{position:sticky;top:0;z-index:20;background:rgba(9,9,11,.96);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:12px;padding:12px 0}
+.logo{width:36px;height:36px;flex:0 0 auto;border-radius:9px;background:var(--cyd);
+  box-shadow:inset 0 0 0 1px var(--cyb);display:flex;align-items:center;justify-content:center;font-size:19px}
+h1{font-size:17px;margin:0;font-weight:600;letter-spacing:-.01em}
+.sub{font-size:12px;color:var(--dim2);margin:1px 0 0}
+nav{display:flex;gap:4px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:0 0 auto;display:flex;align-items:center;gap:6px;border:0;background:none;
+  color:var(--dim2);font:500 14px system-ui;padding:8px 12px;border-radius:9px;cursor:pointer}
+nav button:hover{background:rgba(255,255,255,.05);color:var(--fg)}
+nav button.on{background:var(--cyd);color:#a5f3fc;box-shadow:inset 0 0 0 1px var(--cyb)}
+main{padding:16px 0 96px}
+section.card{border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.pad{padding:12px}
+.hd{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.hd .t{flex:1;min-width:0;font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stack>*+*{margin-top:12px}
+.stack4>*+*{margin-top:16px}
+.muted{color:var(--dim2);font-size:14px}
+.tiny{color:var(--dim3);font-size:12px}
+.up{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim2)}
+.num{font-variant-numeric:tabular-nums}
+input,select,textarea{font:inherit;color:var(--fg)}
+.f{width:100%;border:1px solid var(--line);background:rgba(0,0,0,.3);border-radius:9px;
+  padding:10px 12px;font-size:15px;outline:none}
+.f:focus{border-color:var(--cyb);background:rgba(0,0,0,.5)}
+.f::placeholder{color:var(--dim3)}
+select.f{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--dim2) 50%),linear-gradient(135deg,var(--dim2) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+.inl{width:100%;background:none;border:0;outline:none;padding:6px 2px;font-size:15px;color:var(--fg)}
+.inl:focus{color:#a5f3fc}
+.inl::placeholder{color:var(--dim3)}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:none;color:var(--dim);border-radius:9px;
+  padding:8px 12px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--line2);background:rgba(255,255,255,.05);color:var(--fg)}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--cyd);color:#a5f3fc;box-shadow:inset 0 0 0 1px var(--cyb);border-color:transparent}
+.btn.pri:hover{background:rgba(34,211,238,.25)}
+.btn.dan{color:var(--ro)}
+.btn.dan:hover{background:rgba(251,113,133,.10);border-color:rgba(251,113,133,.4)}
+.btn.warn{background:rgba(251,113,133,.2);color:#fecdd3;box-shadow:inset 0 0 0 1px rgba(251,113,133,.5);border-color:transparent}
+.btn[disabled]{opacity:.4;cursor:default}
+.btn.w{width:100%;justify-content:center}
+.dash{width:100%;border:1px dashed var(--line2);border-radius:12px;background:none;color:var(--dim);
+  padding:14px;font-weight:500;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px}
+.dash:hover{border-color:var(--cyb);color:#a5f3fc}
+.ico{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-3px}
+.row{display:flex;align-items:center;gap:8px}
+.wrapf{display:flex;flex-wrap:wrap;gap:6px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03);
+  padding:10px 12px;text-align:left;color:var(--fg)}
+.tile.on{border-color:var(--cyb);background:rgba(34,211,238,.10)}
+.tile b{display:block;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.tile span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim2)}
+.dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+.chip{border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12px;
+  font-weight:500;background:none;color:var(--dim2)}
+.chip:hover{border-color:var(--line2)}
+.chip.on{color:#fff}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--dim2);font-weight:500;padding:10px 12px;background:var(--card2);white-space:nowrap}
+td{padding:2px 4px;border-top:1px solid rgba(255,255,255,.05)}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+td .inl{padding:8px}
+td .inl:focus{background:rgba(0,0,0,.4);border-radius:6px}
+.iconbtn{border:0;background:none;color:var(--dim3);padding:8px;border-radius:7px;line-height:0}
+.iconbtn:hover{background:rgba(251,113,133,.10);color:var(--ro)}
+.divide>*+*{border-top:1px solid rgba(255,255,255,.05)}
+.bar{height:8px;width:100%;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--cy);transition:width .5s}
+.bar>i.done{background:var(--em)}
+.chk{width:18px;height:18px;flex:0 0 auto;border:1px solid var(--line2);border-radius:5px;
+  background:none;display:flex;align-items:center;justify-content:center;padding:0;color:transparent}
+.chk.on{border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.2);color:var(--em)}
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;border:1px solid var(--line);
+  border-radius:12px;background:rgba(255,255,255,.03);padding:10px 12px}
+.banner.warn{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.07)}
+.hide{display:none}
+.center{min-height:60vh;display:flex;align-items:center;justify-content:center;color:var(--dim2);gap:8px}
+.spin{animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media(max-width:560px){
+  .grid4{grid-template-columns:repeat(2,1fr)}
+  .tile b{font-size:20px}
+}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<noscript style="color:#a1a1aa;font:15px system-ui;display:block;padding:24px">
-  Diese Anwendung benötigt JavaScript.
-</noscript>
+<div id="root"><div class="center">Lagerboard wird geladen…</div></div>
 
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef, useCallback } = React;
+<script>
+"use strict";
+/* =========================================================================
+   Lagerboard – eigenständige Fassung
+   Keine externen Bibliotheken, keine Internet-Verbindung nötig.
+   Läuft hinter Firewall und VPN.
+   ========================================================================= */
 
-/* ---------- Icons (inline, keine externe Bibliothek) ---------- */
-
-const Ico = ({ d, className, title }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className || "h-4 w-4"}
-    aria-hidden="true"
-  >
-    {title && <title>{title}</title>}
-    {d}
-  </svg>
-);
-
-const Boxes = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-4.5-2.7a2 2 0 0 0-2.06 0z" />
-        <path d="m7 16.5-4.74-2.85" />
-        <path d="m7 16.5 5-3" />
-        <path d="M7 16.5v5.17" />
-        <path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L18.5 10.8a2 2 0 0 0-2.06 0z" />
-        <path d="m17 16.5-5-3" />
-        <path d="m17 16.5 4.74-2.85" />
-        <path d="M17 16.5v5.17" />
-        <path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0z" />
-        <path d="M12 8 7.26 5.15" />
-        <path d="m12 8 4.74-2.85" />
-        <path d="M12 13.5V8" />
-      </>
-    }
-  />
-);
-
-const MapPin = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0" />
-        <circle cx="12" cy="10" r="3" />
-      </>
-    }
-  />
-);
-
-const Truck = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
-        <path d="M15 18H9" />
-        <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
-        <circle cx="17" cy="18" r="2" />
-        <circle cx="7" cy="18" r="2" />
-      </>
-    }
-  />
-);
-
-const Plus = (p) => <Ico {...p} d={<><path d="M5 12h14" /><path d="M12 5v14" /></>} />;
-
-const Trash2 = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M3 6h18" />
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-        <line x1="10" x2="10" y1="11" y2="17" />
-        <line x1="14" x2="14" y1="11" y2="17" />
-      </>
-    }
-  />
-);
-
-const RefreshCw = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-        <path d="M21 3v5h-5" />
-        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-        <path d="M8 16H3v5" />
-      </>
-    }
-  />
-);
-
-const Settings = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2" />
-        <circle cx="12" cy="12" r="3" />
-      </>
-    }
-  />
-);
-
-const Check = (p) => <Ico {...p} d={<path d="M20 6 9 17l-5-5" />} />;
-
-const X = (p) => <Ico {...p} d={<><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>} />;
-
-const AlertCircle = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" x2="12" y1="8" y2="12" />
-        <line x1="12" x2="12.01" y1="16" y2="16" />
-      </>
-    }
-  />
-);
-
-const Upload = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" />
-        <line x1="12" x2="12" y1="3" y2="15" />
-      </>
-    }
-  />
-);
-
-const FileSpreadsheet = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-        <path d="M8 13h2" />
-        <path d="M14 13h2" />
-        <path d="M8 17h2" />
-        <path d="M14 17h2" />
-      </>
-    }
-  />
-);
-
-const Target = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="6" />
-        <circle cx="12" cy="12" r="2" />
-      </>
-    }
-  />
-);
-
-const BarChart3 = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M3 3v18h18" />
-        <path d="M18 17V9" />
-        <path d="M13 17V5" />
-        <path d="M8 17v-3" />
-      </>
-    }
-  />
-);
-
-const User = (p) => (
-  <Ico
-    {...p}
-    d={
-      <>
-        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </>
-    }
-  />
-);
-
-/* ---------- Speicher ----------
-   Zwei Betriebsarten:
-   1. Ohne Konfiguration: localStorage. Läuft sofort, aber nur auf DIESEM Gerät.
-   2. Mit Sync-Schlüssel: gemeinsamer Speicher über jsonbin.io, alle Geräte sehen dasselbe.
-   Der Schlüssel wird im Reiter "Bereiche" eingetragen und bleibt lokal gespeichert.
------------------------------------- */
-
-const CFG = "lagerboard:sync";
-
-const getCfg = () => {
-  try {
-    return JSON.parse(localStorage.getItem(CFG) || "null");
-  } catch {
-    return null;
-  }
-};
-const setCfg = (c) =>
-  c ? localStorage.setItem(CFG, JSON.stringify(c)) : localStorage.removeItem(CFG);
-
-const storage = {
-  mode: () => (getCfg() ? "cloud" : "lokal"),
-
-  async get(key) {
-    const c = getCfg();
-    if (!c) {
-      const v = localStorage.getItem(key);
-      if (v === null) throw new Error("leer");
-      return { key, value: v };
-    }
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${c.bin}/latest`, {
-      headers: { "X-Master-Key": c.key, "X-Bin-Meta": "false" },
-    });
-    if (!r.ok) throw new Error("Sync-Fehler " + r.status);
-    const j = await r.json();
-    if (!j || typeof j.value !== "string") throw new Error("leer");
-    return { key, value: j.value };
-  },
-
-  async set(key, value) {
-    const c = getCfg();
-    if (!c) {
-      localStorage.setItem(key, value);
-      return { key, value };
-    }
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${c.bin}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "X-Master-Key": c.key },
-      body: JSON.stringify({ value }),
-    });
-    if (!r.ok) throw new Error("Sync-Fehler " + r.status);
-    return { key, value };
-  },
-};
-
-/* ---------- Konstanten ---------- */
-
-const K = "lagerboard:v1";
-const STATUS = [
-  { id: "frei", label: "Frei", dot: "bg-emerald-400", chip: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30" },
-  { id: "belegt", label: "Belegt", dot: "bg-amber-400", chip: "bg-amber-400/15 text-amber-300 border-amber-400/30" },
-  { id: "gesperrt", label: "Gesperrt", dot: "bg-rose-400", chip: "bg-rose-400/15 text-rose-300 border-rose-400/30" },
-  { id: "fertig", label: "Fertig", dot: "bg-sky-400", chip: "bg-sky-400/15 text-sky-300 border-sky-400/30" },
-];
-const st = (id) => STATUS.find((s) => s.id === id) || STATUS[0];
-
-/* Erkennt Euro- und Einwegpalettenlager, auch bei abweichender Schreibweise */
-const isPal = (v) => {
-  const s = String(v || "").toLowerCase().replace(/[\s.\-_]/g, "");
-  return (
-    s.includes("europalett") ||
-    s.includes("euopalett") ||
-    s.includes("einwegpalett") ||
-    s.includes("einwegpal") ||
-    s === "euro" ||
-    s === "einweg"
-  );
-};
-
-const START = {
-  apps: [
-    {
-      id: "a1",
-      name: "Konsolidierungsplatz 1",
-      slots: [
-        { id: "s1", name: "KP-01", status: "frei", note: "" },
-        { id: "s2", name: "KP-02", status: "belegt", note: "Palette Kunde Müller" },
-      ],
-    },
-  ],
-  free: [
-    { id: "f1", ort: "A-12-3", art: "Europalettenlager", kapazitaet: "2 Pal", bemerkung: "", status: "frei" },
-  ],
-  areas: ["Wareneingang", "Kommissionierung", "Versand", "Blocklager", "Hochregal"],
-  drivers: Array.from({ length: 10 }, (_, i) => ({
-    id: `d${i + 1}`,
-    name: `Fahrer ${i + 1}`,
-    area: "",
-    note: "",
-    at: 0,
-  })),
-  projects: [],
-  kpi: null,
-  rev: 0,
-};
-
+/* ---------------- kleine Helfer ---------------- */
+const $ = (sel, el) => (el || document).querySelector(sel);
 const uid = () => Math.random().toString(36).slice(2, 9);
-const clock = (ts) =>
-  !ts ? "—" : new Date(ts).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const de = (n) => Number(n).toLocaleString("de-DE");
 
-/* Datum + Uhrzeit, z. B. 24.07.2026, 08:15 */
-const stamp = (ts) =>
-  !ts
-    ? "—"
-    : new Date(ts).toLocaleString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-/* Wie lange ist das her */
+const clock = (ts) => !ts ? "—" :
+  new Date(ts).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+const stamp = (ts) => !ts ? "—" :
+  new Date(ts).toLocaleString("de-DE", { day: "2-digit", month: "2-digit",
+    year: "numeric", hour: "2-digit", minute: "2-digit" });
 const ago = (ts, now) => {
   if (!ts) return "";
   const m = Math.floor((now - ts) / 60000);
   if (m < 1) return "gerade eben";
-  if (m < 60) return `vor ${m} Min.`;
+  if (m < 60) return "vor " + m + " Min.";
   const h = Math.floor(m / 60);
-  if (h < 24) return `vor ${h} Std.`;
+  if (h < 24) return "vor " + h + " Std.";
   const d = Math.floor(h / 24);
-  return d === 1 ? "vor 1 Tag" : `vor ${d} Tagen`;
+  return d === 1 ? "vor 1 Tag" : "vor " + d + " Tagen";
 };
-
-/* Ab wann ein Import als veraltet gilt */
 const STALE_H = 8;
 
-/* ---------- Bausteine ---------- */
-
-function Field(props) {
-  return (
-    <input
-      {...props}
-      className={
-        "w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-[15px] text-zinc-100 " +
-        "placeholder:text-zinc-600 outline-none transition focus:border-cyan-400/60 focus:bg-black/50 " +
-        (props.className || "")
-      }
-    />
-  );
-}
-
-function Ghost({ children, onClick, danger, title }) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={
-        "inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium transition " +
-        "hover:border-white/25 active:scale-[0.97] " +
-        (danger ? "text-rose-300 hover:bg-rose-500/10" : "text-zinc-300 hover:bg-white/5")
-      }
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ---------- App ---------- */
-
-function Lagerboard() {
-  const [tab, setTab] = useState("apps");
-  const [fArt, setFArt] = useState("");
-  const [fStatus, setFStatus] = useState("");
-  const [now, setNow] = useState(Date.now());
-  const [data, setData] = useState(START);
-  const [loaded, setLoaded] = useState(false);
-  const [sync, setSync] = useState("idle"); // idle | saving | error
-  const [lastPull, setLastPull] = useState(0);
-  const localRev = useRef(0);
-  const pending = useRef(null);
-
-  /* --- Laden --- */
-  const pull = useCallback(async (force) => {
-    try {
-      const r = await storage.get(K);
-      if (!r) return;
-      const remote = JSON.parse(r.value);
-      /* Ältere Stände auf 10 Fahrer auffüllen */
-      const list = remote.drivers || [];
-      if (list.length < 10) {
-        remote.drivers = [
-          ...list,
-          ...Array.from({ length: 10 - list.length }, (_, i) => ({
-            id: uid(),
-            name: `Fahrer ${list.length + i + 1}`,
-            area: "",
-            note: "",
-            at: 0,
-          })),
-        ];
-      }
-      if (force || remote.rev > localRev.current) {
-        localRev.current = remote.rev;
-        setData(remote);
-      }
-      setLastPull(Date.now());
-      setSync("idle");
-    } catch {
-      /* Schlüssel existiert noch nicht */
-      setLastPull(Date.now());
-    }
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      await pull(true);
-      setLoaded(true);
-    })();
-  }, [pull]);
-
-  /* --- Uhr für die Altersanzeige --- */
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(t);
-  }, []);
-
-  /* --- Live-Abgleich alle 5s --- */
-  useEffect(() => {
-    if (!loaded) return;
-    const t = setInterval(() => pull(false), 5000);
-    return () => clearInterval(t);
-  }, [loaded, pull]);
-
-  /* --- Speichern (entprellt) --- */
-  const push = useCallback((next) => {
-    localRev.current = next.rev;
-    setData(next);
-    setSync("saving");
-    clearTimeout(pending.current);
-    pending.current = setTimeout(async () => {
-      try {
-        const res = await storage.set(K, JSON.stringify(next));
-        setSync(res ? "idle" : "error");
-      } catch {
-        setSync("error");
-      }
-    }, 400);
-  }, []);
-
-  const edit = useCallback(
-    (fn) =>
-      setData((cur) => {
-        const next = fn(structuredClone(cur));
-        next.rev = (cur.rev || 0) + 1;
-        push(next);
-        return next;
-      }),
-    [push]
-  );
-
-  /* --- Aktionen --- */
-  const addApp = () =>
-    edit((d) => {
-      d.apps.push({ id: uid(), name: `Konsolidierungsplatz ${d.apps.length + 1}`, slots: [] });
-      return d;
-    });
-  const delApp = (id) => edit((d) => ((d.apps = d.apps.filter((a) => a.id !== id)), d));
-  const renameApp = (id, v) =>
-    edit((d) => ((d.apps.find((a) => a.id === id).name = v), d));
-  const addSlot = (aid) =>
-    edit((d) => {
-      d.apps.find((a) => a.id === aid).slots.push({ id: uid(), name: "", status: "frei", note: "" });
-      return d;
-    });
-  const setSlot = (aid, sid, patch) =>
-    edit((d) => {
-      const s = d.apps.find((a) => a.id === aid).slots.find((x) => x.id === sid);
-      Object.assign(s, patch);
-      return d;
-    });
-  const delSlot = (aid, sid) =>
-    edit((d) => {
-      const a = d.apps.find((x) => x.id === aid);
-      a.slots = a.slots.filter((s) => s.id !== sid);
-      return d;
-    });
-
-  const addRow = () =>
-    edit((d) => (d.free.push({ id: uid(), ort: "", art: "", kapazitaet: "", bemerkung: "", status: "frei", src: "", srcAt: Date.now() }), d));
-  const setRow = (id, patch) =>
-    edit((d) => {
-      const r = d.free.find((x) => x.id === id);
-      Object.assign(r, patch);
-      /* Von Hand geändert: Zeile ist wieder aktuell */
-      r.editAt = Date.now();
-      return d;
-    });
-  const delRow = (id) => edit((d) => ((d.free = d.free.filter((r) => r.id !== id)), d));
-  const delNonPal = () =>
-    edit((d) => ((d.free = d.free.filter((r) => isPal(r.art))), d));
-  const delByPrefix = (p) =>
-    edit((d) => ((d.free = d.free.filter((r) => !String(r.ort || "").trim().startsWith(p))), d));
-  const importRows = (rows, mode, src) =>
-    edit((d) => {
-      const at = Date.now();
-      const fresh = rows.map((r) => ({ id: uid(), src: src || "", srcAt: at, ...r }));
-      d.free = mode === "replace" ? fresh : [...d.free, ...fresh];
-      return d;
-    });
-
-  const setDriver = (id, patch) =>
-    edit((d) => {
-      Object.assign(d.drivers.find((x) => x.id === id), patch, { at: Date.now() });
-      return d;
-    });
-  const addArea = (v) =>
-    edit((d) => (v.trim() && !d.areas.includes(v.trim()) ? (d.areas.push(v.trim()), d) : d));
-  const delArea = (v) => edit((d) => ((d.areas = d.areas.filter((a) => a !== v)), d));
-
-  /* --- Spezialprojekte --- */
-  const addProject = () =>
-    edit((d) => {
-      (d.projects ||= []).push({
-        id: uid(),
-        title: "",
-        owner: "",
-        due: "",
-        prio: "normal",
-        note: "",
-        tasks: [],
-      });
-      return d;
-    });
-  const setProject = (id, patch) =>
-    edit((d) => (Object.assign(d.projects.find((p) => p.id === id), patch), d));
-  const delProject = (id) =>
-    edit((d) => ((d.projects = d.projects.filter((p) => p.id !== id)), d));
-  const addTask = (pid) =>
-    edit((d) => {
-      d.projects.find((p) => p.id === pid).tasks.push({
-        id: uid(),
-        text: "",
-        owner: "",
-        done: false,
-      });
-      return d;
-    });
-  const setTask = (pid, tid, patch) =>
-    edit((d) => {
-      const t = d.projects.find((p) => p.id === pid).tasks.find((x) => x.id === tid);
-      Object.assign(t, patch);
-      return d;
-    });
-  const delTask = (pid, tid) =>
-    edit((d) => {
-      const p = d.projects.find((x) => x.id === pid);
-      p.tasks = p.tasks.filter((t) => t.id !== tid);
-      return d;
-    });
-
-  /* --- KPI-SF --- */
-  const setKpi = (payload) => edit((d) => ((d.kpi = payload), d));
-  const clearKpi = () => edit((d) => ((d.kpi = null), d));
-
-  /* --- Kennzahlen --- */
-  const allSlots = data.apps.flatMap((a) => a.slots);
-  const counts = STATUS.map((s) => ({ ...s, n: allSlots.filter((x) => x.status === s.id).length }));
-  const active = data.drivers.filter((d) => d.area).length;
-
-  /* --- Auswertung Lagerorte --- */
-  const arten = [...new Set(data.free.map((r) => (r.art || "").trim()).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b, "de")
-  );
-  const byArt = [
-    ...arten.map((a) => ({ art: a, rows: data.free.filter((r) => (r.art || "").trim() === a) })),
-    ...(data.free.some((r) => !(r.art || "").trim())
-      ? [{ art: "Ohne Angabe", rows: data.free.filter((r) => !(r.art || "").trim()) }]
-      : []),
-  ].map((g) => ({
-    ...g,
-    total: g.rows.length,
-    counts: Object.fromEntries(
-      STATUS.map((s) => [s.id, g.rows.filter((r) => (r.status || "frei") === s.id).length])
-    ),
-  }));
-  const freeTotals = Object.fromEntries(
-    STATUS.map((s) => [s.id, data.free.filter((r) => (r.status || "frei") === s.id).length])
-  );
-  const shown = data.free.filter(
-    (r) =>
-      (!fArt || (fArt === "Ohne Angabe" ? !(r.art || "").trim() : (r.art || "").trim() === fArt)) &&
-      (!fStatus || (r.status || "frei") === fStatus)
-  );
-
-  /* Jüngster Import: Stand der Liste */
-  const imported = data.free.filter((r) => r.src && r.srcAt);
-  const lastImp = imported.length
-    ? imported.reduce((a, b) => (b.srcAt > a.srcAt ? b : a))
-    : null;
-  const impCount = lastImp ? imported.filter((r) => r.srcAt === lastImp.srcAt).length : 0;
-  const impStale = lastImp && now - lastImp.srcAt > STALE_H * 3600000;
-
-  if (!loaded)
-    return (
-      <div className="flex min-h-[420px] items-center justify-center bg-zinc-950 text-zinc-500">
-        <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Board wird geladen…
-      </div>
-    );
-
-  const TABS = [
-    { id: "apps", label: "Konsolidierungsplätze", icon: Boxes },
-    { id: "free", label: "Freie Lagerorte", icon: MapPin },
-    { id: "crew", label: "Stapler", icon: Truck },
-    { id: "proj", label: "Spezialprojekte", icon: Target },
-    { id: "kpi", label: "KPI-SF", icon: BarChart3 },
-    { id: "cfg", label: "Bereiche", icon: Settings },
-  ];
-
-  return (
-    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 antialiased">
-      {/* Kopf */}
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-zinc-950/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/15 ring-1 ring-cyan-400/40">
-            <Boxes className="h-5 w-5 text-cyan-300" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[17px] font-semibold tracking-tight">Lagerboard</h1>
-            <p className="truncate text-xs text-zinc-500">
-              {active}/{data.drivers.length} Fahrer eingeteilt · Stand {clock(lastPull)}
-            </p>
-          </div>
-          <button
-            onClick={() => pull(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-2 text-xs text-zinc-400 transition hover:border-white/25 hover:text-zinc-200"
-          >
-            {sync === "saving" ? (
-              <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-300" />
-            ) : sync === "error" ? (
-              <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
-            ) : (
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            )}
-            <span className="hidden sm:inline">
-              {sync === "saving" ? "Speichert" : sync === "error" ? "Fehler" : "Live"}
-            </span>
-          </button>
-        </div>
-
-        <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-2 pb-2">
-          {TABS.map((t) => {
-            const on = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={
-                  "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition " +
-                  (on
-                    ? "bg-cyan-400/15 text-cyan-200 ring-1 ring-cyan-400/40"
-                    : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300")
-                }
-              >
-                <t.icon className="h-4 w-4" />
-                {t.label}
-              </button>
-            );
-          })}
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-4 py-4 pb-24">
-        {/* ---- Konsolidierungsplätze ---- */}
-        {tab === "apps" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-2">
-              {counts.map((c) => (
-                <div key={c.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-                  <div className="text-2xl font-semibold tabular-nums">{c.n}</div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-                    <span className={"h-1.5 w-1.5 rounded-full " + c.dot} />
-                    {c.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {data.apps.map((app) => (
-              <section key={app.id} className="rounded-xl border border-white/10 bg-white/[0.02]">
-                <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
-                  <input
-                    value={app.name}
-                    onChange={(e) => renameApp(app.id, e.target.value)}
-                    className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none focus:text-cyan-200"
-                  />
-                  <span className="rounded-md bg-white/5 px-2 py-0.5 text-xs tabular-nums text-zinc-500">
-                    {app.slots.length}
-                  </span>
-                  <Ghost onClick={() => delApp(app.id)} danger title="Konsolidierungsplatz löschen">
-                    <Trash2 className="h-4 w-4" />
-                  </Ghost>
-                </div>
-
-                <div className="divide-y divide-white/5">
-                  {app.slots.map((s) => (
-                    <div key={s.id} className="space-y-2 px-3 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className={"h-2.5 w-2.5 shrink-0 rounded-full " + st(s.status).dot} />
-                        <input
-                          value={s.name}
-                          placeholder="Stellplatz"
-                          onChange={(e) => setSlot(app.id, s.id, { name: e.target.value })}
-                          className="min-w-0 flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-zinc-600 focus:text-cyan-200"
-                        />
-                        <Ghost onClick={() => delSlot(app.id, s.id)} danger>
-                          <X className="h-4 w-4" />
-                        </Ghost>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 pl-[18px]">
-                        {STATUS.map((o) => (
-                          <button
-                            key={o.id}
-                            onClick={() => setSlot(app.id, s.id, { status: o.id })}
-                            className={
-                              "rounded-md border px-2.5 py-1 text-xs font-medium transition " +
-                              (s.status === o.id
-                                ? o.chip
-                                : "border-white/10 text-zinc-500 hover:border-white/25")
-                            }
-                          >
-                            {o.label}
-                          </button>
-                        ))}
-                      </div>
-                      <input
-                        value={s.note}
-                        placeholder="Notiz…"
-                        onChange={(e) => setSlot(app.id, s.id, { note: e.target.value })}
-                        className="ml-[18px] w-[calc(100%-18px)] bg-transparent text-sm text-zinc-400 outline-none placeholder:text-zinc-700 focus:text-zinc-200"
-                      />
-                    </div>
-                  ))}
-                  {!app.slots.length && (
-                    <p className="px-3 py-4 text-sm text-zinc-600">
-                      Noch keine Stellplätze. Unten hinzufügen.
-                    </p>
-                  )}
-                </div>
-
-                <div className="border-t border-white/10 p-2">
-                  <button
-                    onClick={() => addSlot(app.id)}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-cyan-200"
-                  >
-                    <Plus className="h-4 w-4" /> Stellplatz hinzufügen
-                  </button>
-                </div>
-              </section>
-            ))}
-
-            <button
-              onClick={addApp}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-3 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
-            >
-              <Plus className="h-4 w-4" /> Konsolidierungsplatz anlegen
-            </button>
-          </div>
-        )}
-
-        {/* ---- Freie Lagerorte ---- */}
-        {tab === "free" && (
-          <div className="space-y-3">
-            <ExcelImport onImport={importRows} existing={data.free.length} />
-
-            {lastImp && (
-              <div
-                className={
-                  "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-2.5 " +
-                  (impStale
-                    ? "border-amber-400/40 bg-amber-400/[0.07]"
-                    : "border-white/10 bg-white/[0.03]")
-                }
-              >
-                {impStale ? (
-                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-300" />
-                ) : (
-                  <FileSpreadsheet className="h-4 w-4 shrink-0 text-zinc-500" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm">
-                    <span className={impStale ? "text-amber-200" : "text-zinc-300"}>
-                      Tabellenstand {stamp(lastImp.srcAt)}
-                    </span>
-                    <span className="text-zinc-500"> · {ago(lastImp.srcAt, now)}</span>
-                  </p>
-                  <p className="truncate text-xs text-zinc-500">
-                    {impCount} Zeilen aus {lastImp.src || "Datei"}
-                  </p>
-                </div>
-                {impStale && (
-                  <p className="w-full text-xs text-amber-200/80 sm:w-auto">
-                    Plätze könnten inzwischen belegt sein.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <PrefixCleanup rows={data.free} onDelete={delByPrefix} onDeleteNonPal={delNonPal} />
-
-            {/* Auswertung gesamt */}
-            <div className="grid grid-cols-4 gap-2">
-              {STATUS.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setFStatus(fStatus === s.id ? "" : s.id)}
-                  className={
-                    "rounded-xl border px-3 py-2.5 text-left transition " +
-                    (fStatus === s.id
-                      ? "border-cyan-400/50 bg-cyan-400/10"
-                      : "border-white/10 bg-white/[0.03] hover:border-white/25")
-                  }
-                >
-                  <div className="text-2xl font-semibold tabular-nums">{freeTotals[s.id]}</div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-                    <span className={"h-1.5 w-1.5 rounded-full " + s.dot} />
-                    {s.label}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Auswertung nach Platzart */}
-            {byArt.length > 0 && (
-              <section className="overflow-hidden rounded-xl border border-white/10">
-                <div className="border-b border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500">
-                  Plätze nach Art
-                </div>
-                <div className="divide-y divide-white/5">
-                  {byArt.map((g) => (
-                    <button
-                      key={g.art}
-                      onClick={() => setFArt(fArt === g.art ? "" : g.art)}
-                      className={
-                        "flex w-full flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 text-left transition " +
-                        (fArt === g.art ? "bg-cyan-400/10" : "hover:bg-white/[0.02]")
-                      }
-                    >
-                      <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
-                        {g.art}
-                      </span>
-                      <span className="shrink-0 text-lg font-semibold tabular-nums">{g.total}</span>
-                      <span className="flex w-full shrink-0 gap-1.5 sm:w-auto">
-                        {STATUS.map((s) => (
-                          <span
-                            key={s.id}
-                            title={s.label}
-                            className={
-                              "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs tabular-nums " +
-                              (g.counts[s.id] ? s.chip : "border-white/10 text-zinc-700")
-                            }
-                          >
-                            <span className={"h-1.5 w-1.5 rounded-full " + s.dot} />
-                            {g.counts[s.id]}
-                          </span>
-                        ))}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <div className="flex items-center gap-2">
-              <p className="flex-1 text-sm text-zinc-500">
-                {shown.length === data.free.length
-                  ? `${data.free.length} Lagerorte erfasst.`
-                  : `${shown.length} von ${data.free.length} Lagerorten gezeigt.`}
-              </p>
-              {(fArt || fStatus) && (
-                <Ghost
-                  onClick={() => {
-                    setFArt("");
-                    setFStatus("");
-                  }}
-                >
-                  <X className="h-4 w-4" /> Filter zurücksetzen
-                </Ghost>
-              )}
-            </div>
-
-            <div className="overflow-x-auto rounded-xl border border-white/10">
-              <table className="w-full min-w-[820px] border-collapse text-sm">
-                <thead>
-                  <tr className="bg-white/[0.04] text-left text-xs uppercase tracking-wide text-zinc-500">
-                    <th className="px-3 py-2.5 font-medium">Lagerort</th>
-                    <th className="px-3 py-2.5 font-medium">Platzart</th>
-                    <th className="px-3 py-2.5 font-medium">Status</th>
-                    <th className="px-3 py-2.5 font-medium">Kapazität</th>
-                    <th className="px-3 py-2.5 font-medium">Bemerkung</th>
-                    <th className="px-3 py-2.5 font-medium">Stand</th>
-                    <th className="w-10" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {shown.map((r) => (
-                    <tr key={r.id} className="hover:bg-white/[0.02]">
-                      {["ort", "art"].map((f) => (
-                        <td key={f} className="px-1 py-1">
-                          <input
-                            value={r[f] ?? ""}
-                            onChange={(e) => setRow(r.id, { [f]: e.target.value })}
-                            className={
-                              "w-full rounded-md bg-transparent px-2 py-2 outline-none focus:bg-black/40 focus:text-cyan-200 " +
-                              (f === "ort" ? "font-medium tabular-nums" : "text-zinc-400")
-                            }
-                          />
-                        </td>
-                      ))}
-                      <td className="px-1 py-1">
-                        <div className="flex gap-1">
-                          {STATUS.map((o) => (
-                            <button
-                              key={o.id}
-                              onClick={() => setRow(r.id, { status: o.id })}
-                              title={o.label}
-                              className={
-                                "rounded-md border px-2 py-1.5 text-xs font-medium transition " +
-                                ((r.status || "frei") === o.id
-                                  ? o.chip
-                                  : "border-white/10 text-zinc-600 hover:border-white/25")
-                              }
-                            >
-                              {o.label.slice(0, 1)}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      {["kapazitaet", "bemerkung"].map((f) => (
-                        <td key={f} className="px-1 py-1">
-                          <input
-                            value={r[f] ?? ""}
-                            onChange={(e) => setRow(r.id, { [f]: e.target.value })}
-                            className="w-full rounded-md bg-transparent px-2 py-2 text-zinc-400 outline-none focus:bg-black/40 focus:text-cyan-200"
-                          />
-                        </td>
-                      ))}
-                      {(() => {
-                        const ts = Math.max(r.srcAt || 0, r.editAt || 0);
-                        const old = ts && now - ts > STALE_H * 3600000;
-                        return (
-                          <td className="whitespace-nowrap px-3 py-2">
-                            {ts ? (
-                              <span
-                                title={
-                                  stamp(ts) + (r.editAt >= (r.srcAt || 0) ? " (von Hand)" : " (Import)")
-                                }
-                                className={
-                                  "text-xs tabular-nums " + (old ? "text-amber-300" : "text-zinc-500")
-                                }
-                              >
-                                {ago(ts, now)}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-zinc-700">—</span>
-                            )}
-                          </td>
-                        );
-                      })()}
-                      <td className="px-1">
-                        <button
-                          onClick={() => delRow(r.id)}
-                          className="rounded-md p-2 text-zinc-600 transition hover:bg-rose-500/10 hover:text-rose-300"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!shown.length && (
-                    <tr>
-                      <td colSpan={7} className="px-3 py-4 text-zinc-600">
-                        Keine Lagerorte für diesen Filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <button
-              onClick={addRow}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-3 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
-            >
-              <Plus className="h-4 w-4" /> Zeile hinzufügen
-            </button>
-          </div>
-        )}
-
-        {/* ---- Stapler ---- */}
-        {tab === "crew" && (
-          <div className="space-y-3">
-            {data.drivers.map((d) => (
-              <section
-                key={d.id}
-                className={
-                  "rounded-xl border bg-white/[0.02] p-3 transition " +
-                  (d.area ? "border-cyan-400/30" : "border-white/10")
-                }
-              >
-                <div className="mb-2.5 flex items-center gap-2">
-                  <Truck className={"h-4 w-4 " + (d.area ? "text-cyan-300" : "text-zinc-600")} />
-                  <input
-                    value={d.name}
-                    onChange={(e) => setDriver(d.id, { name: e.target.value })}
-                    className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none focus:text-cyan-200"
-                  />
-                  <span className="shrink-0 text-xs tabular-nums text-zinc-600">
-                    {clock(d.at)}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    onClick={() => setDriver(d.id, { area: "" })}
-                    className={
-                      "rounded-md border px-2.5 py-1.5 text-xs font-medium transition " +
-                      (!d.area
-                        ? "border-zinc-500/40 bg-zinc-500/15 text-zinc-300"
-                        : "border-white/10 text-zinc-600 hover:border-white/25")
-                    }
-                  >
-                    Frei
-                  </button>
-                  {data.areas.map((a) => (
-                    <button
-                      key={a}
-                      onClick={() => setDriver(d.id, { area: a })}
-                      className={
-                        "rounded-md border px-2.5 py-1.5 text-xs font-medium transition " +
-                        (d.area === a
-                          ? "border-cyan-400/50 bg-cyan-400/15 text-cyan-200"
-                          : "border-white/10 text-zinc-500 hover:border-white/25 hover:text-zinc-300")
-                      }
-                    >
-                      {d.area === a && <Check className="mr-1 inline h-3 w-3" />}
-                      {a}
-                    </button>
-                  ))}
-                </div>
-
-                <input
-                  value={d.note}
-                  placeholder="Notiz zum Einsatz…"
-                  onChange={(e) => setDriver(d.id, { note: e.target.value })}
-                  className="mt-2 w-full bg-transparent text-sm text-zinc-400 outline-none placeholder:text-zinc-700 focus:text-zinc-200"
-                />
-              </section>
-            ))}
-          </div>
-        )}
-
-        {/* ---- Spezialprojekte ---- */}
-        {tab === "proj" && (
-          <Projects
-            projects={data.projects || []}
-            people={data.drivers.map((d) => d.name)}
-            onAdd={addProject}
-            onSet={setProject}
-            onDel={delProject}
-            onAddTask={addTask}
-            onSetTask={setTask}
-            onDelTask={delTask}
-          />
-        )}
-
-        {/* ---- KPI-SF ---- */}
-        {tab === "kpi" && <Kpi kpi={data.kpi} onSet={setKpi} onClear={clearKpi} now={now} />}
-
-        {/* ---- Bereiche ---- */}
-        {tab === "cfg" && (
-          <div className="space-y-4">
-            <AreaEditor areas={data.areas} onAdd={addArea} onDel={delArea} />
-            <SyncSetup />
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-/* ---------- Excel-Import ---------- */
-/* Fest: Spalte A = Lagerort, Spalte B = Platzart */
-
-function ExcelImport({ onImport, existing }) {
-  const file = useRef(null);
-  const [book, setBook] = useState(null);
-  const [sheet, setSheet] = useState("");
-  const [rows, setRows] = useState([]);
-  const [skipHead, setSkipHead] = useState(true);
-  const [only, setOnly] = useState("");
-  const [onlyPal, setOnlyPal] = useState(true);
-  const [fname, setFname] = useState("");
-  const [err, setErr] = useState("");
-
-  const loadSheet = (wb, name) => {
-    const grid = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "", raw: false });
-    /* Nur Spalte A und B, Leerzeilen raus */
-    const clean = grid
-      .map((r) => ({ ort: String(r[0] ?? "").trim(), art: String(r[1] ?? "").trim() }))
-      .filter((r) => r.ort !== "" || r.art !== "");
-    setRows(clean);
-  };
-
-  const pick = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setErr("");
-    try {
-      const buf = await f.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      if (!wb.SheetNames.length) throw new Error("leer");
-      setBook(wb);
-      setFname(f.name);
-      setSheet(wb.SheetNames[0]);
-      loadSheet(wb, wb.SheetNames[0]);
-    } catch {
-      setErr("Datei konnte nicht gelesen werden. Unterstützt: .xlsx, .xls, .csv");
-      setBook(null);
-    }
-    e.target.value = "";
-  };
-
-  /* Erste Zeile optional als Überschrift überspringen */
-  const ready = (skipHead ? rows.slice(1) : rows)
-    .filter((r) => !only.trim() || r.ort.startsWith(only.trim()))
-    .filter((r) => !onlyPal || isPal(r.art))
-    .map((r) => ({
-      ort: r.ort,
-      art: r.art,
-      kapazitaet: "",
-      bemerkung: "",
-      status: "frei",
-    }));
-
-  const reset = () => {
-    setBook(null);
-    setSheet("");
-    setRows([]);
-    setSkipHead(true);
-    setOnly("");
-    setFname("");
-    setErr("");
-  };
-
-  const run = (mode) => {
-    onImport(ready, mode, fname);
-    reset();
-  };
-
-  /* --- Startzustand: nur die Auswahlfläche --- */
-  if (!book)
-    return (
-      <div>
-        <button
-          onClick={() => file.current?.click()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-4 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
-        >
-          <Upload className="h-4 w-4" /> Excel-Tabelle einlesen
-        </button>
-        <input
-          ref={file}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={pick}
-          className="hidden"
-        />
-        {err && (
-          <p className="mt-2 flex items-start gap-1.5 text-sm text-rose-300">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            {err}
-          </p>
-        )}
-      </div>
-    );
-
-  /* --- Vorschau --- */
-  return (
-    <section className="rounded-xl border border-cyan-400/30 bg-cyan-400/[0.04]">
-      <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
-        <FileSpreadsheet className="h-4 w-4 shrink-0 text-cyan-300" />
-        <span className="flex-1 truncate text-[15px] font-semibold">Import prüfen</span>
-        <Ghost onClick={reset}>
-          <X className="h-4 w-4" />
-        </Ghost>
-      </div>
-
-      <div className="space-y-3 p-3">
-        {book.SheetNames.length > 1 && (
-          <label className="block">
-            <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
-              Tabellenblatt
-            </span>
-            <select
-              value={sheet}
-              onChange={(e) => {
-                setSheet(e.target.value);
-                loadSheet(book, e.target.value);
-              }}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-[15px] outline-none focus:border-cyan-400/60"
-            >
-              {book.SheetNames.map((n) => (
-                <option key={n} value={n} className="bg-zinc-900">
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        {!rows.length ? (
-          <p className="text-sm text-zinc-500">Dieses Tabellenblatt enthält keine Daten.</p>
-        ) : (
-          <>
-            <p className="text-sm text-zinc-500">
-              Übernommen werden Spalte A als Lagerort und Spalte B als Platzart.
-            </p>
-
-            <button
-              onClick={() => setSkipHead(!skipHead)}
-              className="flex w-full items-center gap-2 rounded-lg border border-white/10 px-3 py-2.5 text-left text-sm transition hover:border-white/25"
-            >
-              <span
-                className={
-                  "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition " +
-                  (skipHead
-                    ? "border-cyan-400/60 bg-cyan-400/20 text-cyan-200"
-                    : "border-white/20")
-                }
-              >
-                {skipHead && <Check className="h-3 w-3" />}
-              </span>
-              <span className="flex-1 text-zinc-300">Erste Zeile ist eine Überschrift</span>
-              {rows[0] && (
-                <span className="truncate text-xs text-zinc-600">
-                  {rows[0].ort || "—"} · {rows[0].art || "—"}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setOnlyPal(!onlyPal)}
-              className="flex w-full items-center gap-2 rounded-lg border border-white/10 px-3 py-2.5 text-left text-sm transition hover:border-white/25"
-            >
-              <span
-                className={
-                  "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition " +
-                  (onlyPal ? "border-cyan-400/60 bg-cyan-400/20 text-cyan-200" : "border-white/20")
-                }
-              >
-                {onlyPal && <Check className="h-3 w-3" />}
-              </span>
-              <span className="flex-1 text-zinc-300">
-                Nur Europaletten- und Einwegpalettenlager
-              </span>
-            </button>
-
-            <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
-                Nur diesen Nummernkreis übernehmen (optional)
-              </span>
-              <Field
-                value={only}
-                placeholder="z. B. 64-"
-                onChange={(e) => setOnly(e.target.value)}
-                className="tabular-nums"
-              />
-            </label>
-
-            {/* Vorschau */}
-            <div className="overflow-x-auto rounded-lg border border-white/10">
-              <table className="w-full min-w-[380px] border-collapse text-sm">
-                <thead>
-                  <tr className="bg-white/[0.04] text-left text-xs uppercase tracking-wide text-zinc-500">
-                    <th className="px-3 py-2 font-medium">Lagerort (A)</th>
-                    <th className="px-3 py-2 font-medium">Platzart (B)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {ready.slice(0, 5).map((r, i) => (
-                    <tr key={i}>
-                      <td className="px-3 py-2 font-medium tabular-nums">{r.ort || "—"}</td>
-                      <td className="px-3 py-2 text-zinc-400">{r.art || "—"}</td>
-                    </tr>
-                  ))}
-                  {!ready.length && (
-                    <tr>
-                      <td colSpan={2} className="px-3 py-3 text-zinc-600">
-                        Keine Zeilen übrig. Prüfe die Datei oder den Haken oben.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="text-sm text-zinc-500">
-              {ready.length} Zeilen erkannt
-              {ready.length > 5 && ` (Vorschau zeigt 5)`}.
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => run("append")}
-                disabled={!ready.length}
-                className="flex-1 rounded-lg bg-cyan-400/15 px-4 py-2.5 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25 disabled:opacity-40"
-              >
-                Anhängen ({existing} bleiben)
-              </button>
-              <button
-                onClick={() => run("replace")}
-                disabled={!ready.length}
-                className="flex-1 rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-rose-400/40 hover:text-rose-200 disabled:opacity-40"
-              >
-                Tabelle ersetzen
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Aufräumen nach Nummernkreis ---------- */
-
-function PrefixCleanup({ rows, onDelete, onDeleteNonPal }) {
-  const [p, setP] = useState("65-");
-  const [confirm, setConfirm] = useState(false);
-  const [confirmPal, setConfirmPal] = useState(false);
-
-  const hit = rows.filter((r) => String(r.ort || "").trim().startsWith(p.trim()));
-  const nonPal = rows.filter((r) => !isPal(r.art));
-  const valid = p.trim() !== "";
-
-  return (
-    <section className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
-      <div className="mb-2 flex items-center gap-2">
-        <Trash2 className="h-4 w-4 shrink-0 text-zinc-500" />
-        <span className="text-[15px] font-semibold">Nummernkreis entfernen</span>
-      </div>
-      <p className="mb-2.5 text-sm text-zinc-500">
-        Löscht alle Lagerorte, deren Nummer so beginnt. Gilt auch für deinen Teamleiter.
-      </p>
-
-      <div className="flex gap-2">
-        <Field
-          value={p}
-          placeholder="z. B. 65-"
-          onChange={(e) => {
-            setP(e.target.value);
-            setConfirm(false);
-          }}
-          className="tabular-nums"
-        />
-        <button
-          disabled={!valid || !hit.length}
-          onClick={() => {
-            if (!confirm) return setConfirm(true);
-            onDelete(p.trim());
-            setConfirm(false);
-          }}
-          className={
-            "shrink-0 rounded-lg px-4 text-sm font-medium transition disabled:opacity-40 " +
-            (confirm
-              ? "bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/50 hover:bg-rose-500/30"
-              : "border border-white/10 text-zinc-300 hover:border-rose-400/40 hover:text-rose-200")
-          }
-        >
-          {confirm ? `${hit.length} wirklich löschen` : "Löschen"}
-        </button>
-      </div>
-
-      <p className="mt-2 text-sm text-zinc-500">
-        {!valid
-          ? "Nummernkreis eingeben."
-          : hit.length
-          ? `${hit.length} Treffer, z. B. ${hit
-              .slice(0, 3)
-              .map((r) => r.ort)
-              .join(", ")}${hit.length > 3 ? " …" : ""}`
-          : "Keine Treffer."}
-      </p>
-      {confirm && (
-        <button
-          onClick={() => setConfirm(false)}
-          className="mt-1 text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
-        >
-          Abbrechen
-        </button>
-      )}
-
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
-        <p className="min-w-0 flex-1 text-sm text-zinc-500">
-          {nonPal.length
-            ? `${nonPal.length} Plätze sind weder Euro- noch Einwegpalettenlager.`
-            : "Nur Euro- und Einwegpalettenlager vorhanden."}
-        </p>
-        <button
-          disabled={!nonPal.length}
-          onClick={() => {
-            if (!confirmPal) return setConfirmPal(true);
-            onDeleteNonPal();
-            setConfirmPal(false);
-          }}
-          className={
-            "shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-40 " +
-            (confirmPal
-              ? "bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/50 hover:bg-rose-500/30"
-              : "border border-white/10 text-zinc-300 hover:border-rose-400/40 hover:text-rose-200")
-          }
-        >
-          {confirmPal ? `${nonPal.length} wirklich löschen` : "Andere Arten entfernen"}
-        </button>
-        {confirmPal && (
-          <button
-            onClick={() => setConfirmPal(false)}
-            className="text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
-          >
-            Abbrechen
-          </button>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Spezialprojekte ---------- */
-
+/* Zahl aus deutscher oder englischer Schreibweise.
+   Heikel ist der einzelne Punkt: "1.250" ist deutsch 1250, englisch 1,25.
+   Regel: Punkt mit genau drei Ziffern dahinter und kein Komma im Text
+   -> Tausenderpunkt. Sonst Dezimalpunkt. */
+const num = (v) => {
+  let s = String(v == null ? "" : v).trim().replace(/\s/g, "");
+  if (!s) return 0;
+  s = s.replace(/[^0-9.,\-]/g, "");
+  if (!s) return 0;
+  const hasC = s.indexOf(",") > -1, dots = (s.match(/\./g) || []).length;
+  if (hasC && dots) s = s.replace(/\./g, "").replace(",", ".");        /* 1.234,56 */
+  else if (hasC) s = s.replace(",", ".");                              /* 1,5 */
+  else if (dots > 1) s = s.replace(/\./g, "");                         /* 1.234.567 */
+  else if (dots === 1 && /^-?\d{1,3}\.\d{3}$/.test(s)) s = s.replace(".", ""); /* 1.250 */
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+};
+
+const STATUS = [
+  { id: "frei",     label: "Frei",     col: "var(--em)" },
+  { id: "belegt",   label: "Belegt",   col: "var(--am)" },
+  { id: "gesperrt", label: "Gesperrt", col: "var(--ro)" },
+  { id: "fertig",   label: "Fertig",   col: "var(--sk)" }
+];
 const PRIO = [
-  { id: "hoch", label: "Hoch", chip: "bg-rose-400/15 text-rose-300 border-rose-400/30" },
-  { id: "normal", label: "Normal", chip: "bg-sky-400/15 text-sky-300 border-sky-400/30" },
-  { id: "niedrig", label: "Niedrig", chip: "bg-zinc-400/10 text-zinc-400 border-white/15" },
+  { id: "hoch",    label: "Hoch",    col: "var(--ro)" },
+  { id: "normal",  label: "Normal",  col: "var(--sk)" },
+  { id: "niedrig", label: "Niedrig", col: "var(--dim)" }
 ];
 
-function Bar({ pct, tone = "cyan" }) {
-  const c = tone === "done" ? "bg-emerald-400" : "bg-cyan-400";
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-      <div
-        className={"h-full rounded-full transition-all duration-500 " + c}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
+/* Euro-/Einwegpalettenlager erkennen, auch bei abweichender Schreibweise */
+const isPal = (v) => {
+  const s = String(v || "").toLowerCase().replace(/[\s.\-_]/g, "");
+  return s.indexOf("europalett") > -1 || s.indexOf("euopalett") > -1 ||
+         s.indexOf("einwegpalett") > -1 || s.indexOf("einwegpal") > -1 ||
+         s === "euro" || s === "einweg";
+};
+
+/* ---------------- Symbole (inline) ---------------- */
+const SVG = {
+  box:'<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>',
+  pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  up:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+  sheet:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8"/><path d="M8 17h8"/>',
+  alert:'<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
+};
+const ico = (n, cls) => '<svg class="ico ' + (cls || "") + '" viewBox="0 0 24 24" fill="none" ' +
+  'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+  'aria-hidden="true">' + SVG[n] + '</svg>';
+
+/* =========================================================================
+   XLSX-/CSV-Leser (eigenbau)
+   xlsx ist ein ZIP-Archiv. Der Browser kann deflate seit einigen Jahren
+   selbst entpacken (DecompressionStream), daher brauchen wir keine Bibliothek.
+   ========================================================================= */
+
+async function inflateRaw(bytes) {
+  if (typeof DecompressionStream === "undefined")
+    throw new Error("Dieser Browser ist zu alt für .xlsx. Bitte die Datei in Excel als CSV speichern.");
+  const ds = new DecompressionStream("deflate-raw");
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-function Projects({ projects, people, onAdd, onSet, onDel, onAddTask, onSetTask, onDelTask }) {
-  const stat = (p) => {
-    const n = p.tasks.length;
-    const d = p.tasks.filter((t) => t.done).length;
-    return { n, d, pct: n ? Math.round((d / n) * 100) : 0 };
-  };
-  const allTasks = projects.flatMap((p) => p.tasks);
-  const doneAll = allTasks.filter((t) => t.done).length;
-  const pctAll = allTasks.length ? Math.round((doneAll / allTasks.length) * 100) : 0;
-
-  /* Wer hat wie viel offen */
-  const load = [...new Set(allTasks.map((t) => t.owner).filter(Boolean))]
-    .map((o) => ({
-      owner: o,
-      open: allTasks.filter((t) => t.owner === o && !t.done).length,
-      done: allTasks.filter((t) => t.owner === o && t.done).length,
-    }))
-    .sort((a, b) => b.open + b.done - (a.open + a.done));
-  const maxLoad = Math.max(1, ...load.map((l) => l.open + l.done));
-
-  return (
-    <div className="space-y-4">
-      {/* Gesamtfortschritt */}
-      {allTasks.length > 0 && (
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="mb-2 flex items-baseline gap-2">
-            <span className="text-3xl font-semibold tabular-nums">{pctAll}%</span>
-            <span className="text-sm text-zinc-500">
-              {doneAll} von {allTasks.length} Aufgaben erledigt
-            </span>
-          </div>
-          <Bar pct={pctAll} tone={pctAll === 100 ? "done" : "cyan"} />
-
-          {load.length > 0 && (
-            <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
-              <p className="text-xs uppercase tracking-wide text-zinc-500">Verteilung</p>
-              {load.map((l) => (
-                <div key={l.owner} className="flex items-center gap-2">
-                  <span className="w-24 shrink-0 truncate text-sm text-zinc-400">{l.owner}</span>
-                  <div className="flex h-4 flex-1 overflow-hidden rounded bg-white/5">
-                    <div
-                      className="bg-emerald-400/70"
-                      style={{ width: `${(l.done / maxLoad) * 100}%` }}
-                      title={`${l.done} erledigt`}
-                    />
-                    <div
-                      className="bg-cyan-400/70"
-                      style={{ width: `${(l.open / maxLoad) * 100}%` }}
-                      title={`${l.open} offen`}
-                    />
-                  </div>
-                  <span className="w-14 shrink-0 text-right text-xs tabular-nums text-zinc-500">
-                    {l.done}/{l.done + l.open}
-                  </span>
-                </div>
-              ))}
-              <p className="pt-1 text-xs text-zinc-600">
-                <span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-400/70" />
-                erledigt
-                <span className="ml-3 mr-1 inline-block h-2 w-2 rounded-full bg-cyan-400/70" />
-                offen
-              </p>
-            </div>
-          )}
-        </section>
-      )}
-
-      {projects.map((p) => {
-        const s = stat(p);
-        const pr = PRIO.find((x) => x.id === p.prio) || PRIO[1];
-        return (
-          <section key={p.id} className="rounded-xl border border-white/10 bg-white/[0.02]">
-            <div className="space-y-2 border-b border-white/10 p-3">
-              <div className="flex items-center gap-2">
-                <input
-                  value={p.title}
-                  placeholder="Projektname"
-                  onChange={(e) => onSet(p.id, { title: e.target.value })}
-                  className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:text-zinc-600 focus:text-cyan-200"
-                />
-                <Ghost onClick={() => onDel(p.id)} danger title="Projekt löschen">
-                  <Trash2 className="h-4 w-4" />
-                </Ghost>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={p.owner}
-                  onChange={(e) => onSet(p.id, { owner: e.target.value })}
-                  className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-sm outline-none focus:border-cyan-400/60"
-                >
-                  <option value="" className="bg-zinc-900">
-                    Verantwortlich —
-                  </option>
-                  {people.map((n) => (
-                    <option key={n} value={n} className="bg-zinc-900">
-                      {n}
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="date"
-                  value={p.due}
-                  onChange={(e) => onSet(p.id, { due: e.target.value })}
-                  className="rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-sm text-zinc-300 outline-none focus:border-cyan-400/60"
-                />
-
-                <div className="flex gap-1">
-                  {PRIO.map((o) => (
-                    <button
-                      key={o.id}
-                      onClick={() => onSet(p.id, { prio: o.id })}
-                      className={
-                        "rounded-md border px-2 py-1.5 text-xs font-medium transition " +
-                        (p.prio === o.id ? o.chip : "border-white/10 text-zinc-600 hover:border-white/25")
-                      }
-                    >
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <Bar pct={s.pct} tone={s.pct === 100 ? "done" : "cyan"} />
-                <span className="w-20 shrink-0 text-right text-xs tabular-nums text-zinc-500">
-                  {s.d}/{s.n} · {s.pct}%
-                </span>
-              </div>
-            </div>
-
-            <div className="divide-y divide-white/5">
-              {p.tasks.map((t) => (
-                <div key={t.id} className="flex items-center gap-2 px-3 py-2">
-                  <button
-                    onClick={() => onSetTask(p.id, t.id, { done: !t.done })}
-                    className={
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition " +
-                      (t.done
-                        ? "border-emerald-400/60 bg-emerald-400/20 text-emerald-300"
-                        : "border-white/20 hover:border-white/40")
-                    }
-                  >
-                    {t.done && <Check className="h-3.5 w-3.5" />}
-                  </button>
-                  <input
-                    value={t.text}
-                    placeholder="Aufgabe"
-                    onChange={(e) => onSetTask(p.id, t.id, { text: e.target.value })}
-                    className={
-                      "min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-600 focus:text-cyan-200 " +
-                      (t.done ? "text-zinc-600 line-through" : "text-zinc-200")
-                    }
-                  />
-                  <select
-                    value={t.owner}
-                    onChange={(e) => onSetTask(p.id, t.id, { owner: e.target.value })}
-                    className="w-28 shrink-0 rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-xs outline-none focus:border-cyan-400/60"
-                  >
-                    <option value="" className="bg-zinc-900">
-                      —
-                    </option>
-                    {people.map((n) => (
-                      <option key={n} value={n} className="bg-zinc-900">
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => onDelTask(p.id, t.id)}
-                    className="shrink-0 rounded-md p-1.5 text-zinc-600 transition hover:bg-rose-500/10 hover:text-rose-300"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {!p.tasks.length && (
-                <p className="px-3 py-3 text-sm text-zinc-600">Noch keine Aufgaben.</p>
-              )}
-            </div>
-
-            <div className="border-t border-white/10 p-2">
-              <button
-                onClick={() => onAddTask(p.id)}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-cyan-200"
-              >
-                <Plus className="h-4 w-4" /> Aufgabe hinzufügen
-              </button>
-            </div>
-          </section>
-        );
-      })}
-
-      <button
-        onClick={onAdd}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-3 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
-      >
-        <Plus className="h-4 w-4" /> Projekt anlegen
-      </button>
-    </div>
-  );
-}
-
-/* ---------- KPI-SF ---------- */
-
-function Kpi({ kpi, onSet, onClear, now }) {
-  const file = useRef(null);
-  const [grid, setGrid] = useState(null);
-  const [head, setHead] = useState([]);
-  const [fname, setFname] = useState("");
-  const [cName, setCName] = useState("");
-  const [cVal, setCVal] = useState("");
-  const [cCat, setCCat] = useState("");
-  const [week, setWeek] = useState("");
-  const [err, setErr] = useState("");
-
-  const pick = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setErr("");
-    try {
-      const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {
-        header: 1,
-        defval: "",
-        raw: false,
-      });
-      const clean = rows.filter((r) => r.some((c) => String(c).trim() !== ""));
-      if (clean.length < 2) throw new Error("leer");
-      setHead(clean[0].map((h, i) => (String(h).trim() ? String(h).trim() : `Spalte ${i + 1}`)));
-      setGrid(clean.slice(1));
-      setFname(f.name);
-      setCName("");
-      setCVal("");
-      setCCat("");
-    } catch {
-      setErr("Datei konnte nicht gelesen werden. Unterstützt: .xlsx, .xls, .csv");
+/* ZIP entpacken: liefert { dateiname: Uint8Array } */
+async function unzip(buf) {
+  const d = new DataView(buf), u = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = u.length - 22; i >= 0 && i > u.length - 66000; i--) {
+    if (d.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Keine gültige Excel-Datei.");
+  const count = d.getUint16(eocd + 10, true);
+  let p = d.getUint32(eocd + 16, true);
+  const out = {};
+  for (let n = 0; n < count; n++) {
+    if (d.getUint32(p, true) !== 0x02014b50) break;
+    const method = d.getUint16(p + 10, true);
+    const csize  = d.getUint32(p + 20, true);
+    const nlen   = d.getUint16(p + 28, true);
+    const elen   = d.getUint16(p + 30, true);
+    const clen   = d.getUint16(p + 32, true);
+    const lho    = d.getUint32(p + 42, true);
+    const name   = new TextDecoder().decode(u.subarray(p + 46, p + 46 + nlen));
+    const lnlen  = d.getUint16(lho + 26, true);
+    const lelen  = d.getUint16(lho + 28, true);
+    const start  = lho + 30 + lnlen + lelen;
+    const raw    = u.subarray(start, start + csize);
+    if (name.indexOf("xl/") === 0 || name.indexOf("sheet") > -1) {
+      out[name] = method === 0 ? raw : await inflateRaw(raw);
     }
-    e.target.value = "";
-  };
+    p += 46 + nlen + elen + clen;
+  }
+  return out;
+}
 
-  const num = (v) => {
-    const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
-    return isNaN(n) ? 0 : n;
-  };
+const dec = (b) => new TextDecoder("utf-8").decode(b);
+const unesc = (s) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (m, c) =>
+    String.fromCharCode(+c)).replace(/&amp;/g, "&");
 
-  /* Auswertung je Mitarbeiter */
-  const build = () => {
-    if (!grid || cName === "") return null;
-    const map = {};
-    grid.forEach((r) => {
-      const who = String(r[Number(cName)] ?? "").trim();
-      if (!who) return;
-      const v = cVal === "" ? 1 : num(r[Number(cVal)]);
-      const cat = cCat === "" ? "" : String(r[Number(cCat)] ?? "").trim() || "Ohne";
-      map[who] ||= { name: who, sum: 0, rows: 0, cats: {} };
-      map[who].sum += v;
-      map[who].rows += 1;
-      if (cat) map[who].cats[cat] = (map[who].cats[cat] || 0) + v;
+/* Spaltenbuchstabe -> Index: A=0, B=1, AA=26 */
+const colIdx = (ref) => {
+  const m = /^([A-Z]+)/.exec(ref || "");
+  if (!m) return 0;
+  let n = 0;
+  for (const ch of m[1]) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+};
+
+/* Ein Tabellenblatt in ein Raster aus Text umwandeln */
+function sheetToGrid(xml, shared) {
+  const rows = [];
+  const rowRe = /<row[^>]*>([\s\S]*?)<\/row>|<row[^>]*\/>/g;
+  let r;
+  while ((r = rowRe.exec(xml))) {
+    const inner = r[1] || "";
+    const cells = [];
+    const cRe = /<c([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let c;
+    while ((c = cRe.exec(inner))) {
+      const attr = c[1] || "", body = c[2] || "";
+      const refM = /r="([A-Z]+\d+)"/.exec(attr);
+      const idx = refM ? colIdx(refM[1]) : cells.length;
+      const type = (/t="([^"]+)"/.exec(attr) || [])[1] || "";
+      let val = "";
+      if (type === "inlineStr") {
+        const t = body.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || [];
+        val = t.map((x) => x.replace(/<[^>]+>/g, "")).join("");
+      } else {
+        const v = /<v[^>]*>([\s\S]*?)<\/v>/.exec(body);
+        val = v ? v[1] : "";
+        if (type === "s") val = shared[+val] != null ? shared[+val] : "";
+      }
+      while (cells.length < idx) cells.push("");
+      cells[idx] = unesc(val);
+    }
+    rows.push(cells);
+  }
+  return rows;
+}
+
+/* sharedStrings.xml einlesen */
+function readShared(xml) {
+  const out = [];
+  const siRe = /<si>([\s\S]*?)<\/si>/g;
+  let m;
+  while ((m = siRe.exec(xml))) {
+    const parts = m[1].match(/<t[^>]*>([\s\S]*?)<\/t>/g) || [];
+    out.push(unesc(parts.map((p) => p.replace(/<[^>]+>/g, "")).join("")));
+  }
+  return out;
+}
+
+/* CSV zerlegen, Trennzeichen wird erkannt */
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  const head = text.slice(0, 5000);
+  const sep = (head.split(";").length > head.split(",").length) ? ";"
+            : (head.split("\t").length > head.split(",").length) ? "\t" : ",";
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === sep) { row.push(cell); cell = ""; }
+    else if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+    else if (ch !== "\r") cell += ch;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/* Öffentliche Funktion: Datei -> { blätter: [{name, grid}] } */
+async function readSpreadsheet(file) {
+  const name = (file.name || "").toLowerCase();
+  if (name.endsWith(".csv") || name.endsWith(".txt")) {
+    let text;
+    const buf = await file.arrayBuffer();
+    text = new TextDecoder("utf-8").decode(buf);
+    /* Wenn Umlaute kaputt aussehen, Windows-Kodierung versuchen */
+    if (text.indexOf("\ufffd") > -1) {
+      try { text = new TextDecoder("windows-1252").decode(buf); } catch (e) {}
+    }
+    return [{ name: "CSV", grid: parseCSV(text) }];
+  }
+  const files = await unzip(await file.arrayBuffer());
+  const ssKey = Object.keys(files).find((k) => k.indexOf("sharedStrings.xml") > -1);
+  const shared = ssKey ? readShared(dec(files[ssKey])) : [];
+  /* Blattnamen aus workbook.xml holen */
+  const wbKey = Object.keys(files).find((k) => /xl\/workbook\.xml$/.test(k));
+  let names = [];
+  if (wbKey) {
+    const wx = dec(files[wbKey]);
+    const re = /<sheet[^>]*name="([^"]*)"/g; let m;
+    while ((m = re.exec(wx))) names.push(unesc(m[1]));
+  }
+  const sheetKeys = Object.keys(files)
+    .filter((k) => /xl\/worksheets\/sheet\d+\.xml$/.test(k))
+    .sort((a, b) => (+(/(\d+)\.xml/.exec(a)[1])) - (+(/(\d+)\.xml/.exec(b)[1])));
+  if (!sheetKeys.length) throw new Error("Keine Tabellenblätter gefunden.");
+  return sheetKeys.map((k, i) => ({
+    name: names[i] || ("Tabelle " + (i + 1)),
+    grid: sheetToGrid(dec(files[k]), shared)
+  }));
+}
+
+/* =========================================================================
+   Speicher
+   Ohne Einrichtung: localStorage (nur dieses Gerät).
+   Mit Sync-Daten: jsonbin.io, alle Geräte sehen dasselbe.
+   ========================================================================= */
+const KEY = "lagerboard:v1";
+const CFGK = "lagerboard:sync";
+const getCfg = () => { try { return JSON.parse(localStorage.getItem(CFGK) || "null"); } catch (e) { return null; } };
+const setCfg = (c) => c ? localStorage.setItem(CFGK, JSON.stringify(c)) : localStorage.removeItem(CFGK);
+
+const store = {
+  async get() {
+    const c = getCfg();
+    if (!c) {
+      const v = localStorage.getItem(KEY);
+      if (v === null) return null;
+      return JSON.parse(v);
+    }
+    const r = await fetch("https://api.jsonbin.io/v3/b/" + c.bin + "/latest",
+      { headers: { "X-Master-Key": c.key, "X-Bin-Meta": "false" } });
+    if (!r.ok) throw new Error("Sync " + r.status);
+    const j = await r.json();
+    return j && j.value ? JSON.parse(j.value) : null;
+  },
+  async set(obj) {
+    const c = getCfg(), s = JSON.stringify(obj);
+    if (!c) { localStorage.setItem(KEY, s); return; }
+    const r = await fetch("https://api.jsonbin.io/v3/b/" + c.bin, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": c.key },
+      body: JSON.stringify({ value: s })
     });
-    const list = Object.values(map).sort((a, b) => b.sum - a.sum);
-    const total = list.reduce((s, x) => s + x.sum, 0);
-    const cats = [...new Set(list.flatMap((x) => Object.keys(x.cats)))].sort();
-    return {
-      week: week.trim(),
-      file: fname,
-      at: Date.now(),
-      unit: cVal === "" ? "Zeilen" : head[Number(cVal)],
-      list,
-      total,
-      cats,
-    };
-  };
+    if (!r.ok) throw new Error("Sync " + r.status);
+  }
+};
 
-  const preview = build();
+/* ---------------- Ausgangsdaten ---------------- */
+const START = () => ({
+  apps: [{
+    id: "a1", name: "Konsolidierungsplatz 1",
+    slots: [
+      { id: uid(), name: "KP-01", status: "frei", note: "" },
+      { id: uid(), name: "KP-02", status: "belegt", note: "Palette Kunde Müller" }
+    ]
+  }],
+  free: [{ id: uid(), ort: "A-12-3", art: "Europalettenlager", kapazitaet: "2 Pal",
+           bemerkung: "", status: "frei", src: "", srcAt: 0 }],
+  areas: ["Wareneingang", "Kommissionierung", "Versand", "Blocklager", "Hochregal"],
+  drivers: Array.from({ length: 10 }, (_, i) =>
+    ({ id: uid(), name: "Fahrer " + (i + 1), area: "", note: "", at: 0 })),
+  projects: [],
+  kpi: null,
+  rev: 0
+});
 
-  /* --- Gespeicherte Auswertung --- */
-  if (kpi && !grid) {
-    const max = Math.max(1, ...kpi.list.map((x) => x.sum));
-    const avg = kpi.list.length ? kpi.total / kpi.list.length : 0;
-    return (
-      <div className="space-y-4">
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-[17px] font-semibold">
-              {kpi.week ? `Woche ${kpi.week}` : "Auswertung"}
-            </span>
-            <span className="text-sm text-zinc-500">
-              {kpi.list.length} Mitarbeiter · {kpi.total.toLocaleString("de-DE")} {kpi.unit}
-            </span>
-          </div>
-          <p className="mt-0.5 truncate text-xs text-zinc-600">
-            {kpi.file} · eingelesen {stamp(kpi.at)} ({ago(kpi.at, now)})
-          </p>
-        </section>
+/* =========================================================================
+   Zustand
+   ========================================================================= */
+const S = {
+  data: START(),
+  tab: "apps",
+  fArt: "", fStatus: "",
+  now: Date.now(),
+  lastPull: 0,
+  sync: "idle",
+  loaded: false,
+  imp: null,     /* laufender Lagerort-Import */
+  kimp: null,    /* laufender KPI-Import */
+  rev: 0
+};
+let saveTimer = null;
 
-        <section className="rounded-xl border border-white/10">
-          <div className="border-b border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs uppercase tracking-wide text-zinc-500">
-            Leistung je Mitarbeiter
-          </div>
-          <div className="divide-y divide-white/5">
-            {kpi.list.map((x, i) => (
-              <div key={x.name} className="px-3 py-2.5">
-                <div className="mb-1.5 flex items-center gap-2">
-                  <span className="w-6 shrink-0 text-xs tabular-nums text-zinc-600">{i + 1}.</span>
-                  <User className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
-                  <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{x.name}</span>
-                  <span className="shrink-0 text-[15px] font-semibold tabular-nums">
-                    {x.sum.toLocaleString("de-DE")}
-                  </span>
-                  <span
-                    className={
-                      "w-14 shrink-0 text-right text-xs tabular-nums " +
-                      (x.sum >= avg ? "text-emerald-400" : "text-zinc-600")
-                    }
-                  >
-                    {avg ? `${x.sum >= avg ? "+" : ""}${Math.round((x.sum / avg - 1) * 100)}%` : ""}
-                  </span>
-                </div>
-                <Bar pct={(x.sum / max) * 100} />
-                {Object.keys(x.cats || {}).length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1.5 pl-6">
-                    {Object.entries(x.cats)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([c, v]) => (
-                        <span
-                          key={c}
-                          className="rounded-md border border-white/10 px-1.5 py-0.5 text-xs text-zinc-500"
-                        >
-                          {c} <span className="tabular-nums text-zinc-400">{v.toLocaleString("de-DE")}</span>
-                        </span>
-                      ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-3 border-t border-white/10 px-3 py-2.5 text-sm text-zinc-500">
-            <span>Ø {Math.round(avg).toLocaleString("de-DE")} pro Mitarbeiter</span>
-            <span className="flex-1" />
-            <Ghost onClick={() => file.current?.click()}>
-              <Upload className="h-4 w-4" /> Neue Woche
-            </Ghost>
-            <Ghost onClick={onClear} danger>
-              <Trash2 className="h-4 w-4" />
-            </Ghost>
-          </div>
-        </section>
+async function pull(force) {
+  try {
+    const remote = await store.get();
+    if (remote) {
+      const list = remote.drivers || [];
+      if (list.length < 10) {
+        for (let i = list.length; i < 10; i++)
+          list.push({ id: uid(), name: "Fahrer " + (i + 1), area: "", note: "", at: 0 });
+        remote.drivers = list;
+      }
+      if (force || (remote.rev || 0) > S.rev) { S.rev = remote.rev || 0; S.data = remote; }
+    }
+    S.lastPull = Date.now();
+    S.sync = "idle";
+  } catch (e) {
+    S.sync = "error";
+    console.warn("Laden fehlgeschlagen:", e.message);
+  }
+}
 
-        <input ref={file} type="file" accept=".xlsx,.xls,.csv" onChange={pick} className="hidden" />
-      </div>
-    );
+function commit(fn) {
+  fn(S.data);
+  S.data.rev = (S.data.rev || 0) + 1;
+  S.rev = S.data.rev;
+  S.sync = "saving";
+  render();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try { await store.set(S.data); S.sync = "idle"; }
+    catch (e) { S.sync = "error"; }
+    paintHeader();
+  }, 400);
+}
+
+/* =========================================================================
+   Oberfläche
+   ========================================================================= */
+const TABS = [
+  { id: "apps", label: "Konsolidierungsplätze", ico: "box" },
+  { id: "free", label: "Freie Lagerorte",       ico: "pin" },
+  { id: "crew", label: "Stapler",               ico: "truck" },
+  { id: "proj", label: "Spezialprojekte",       ico: "target" },
+  { id: "kpi",  label: "KPI-SF",                ico: "chart" },
+  { id: "cfg",  label: "Bereiche",              ico: "gear" }
+];
+
+function paintHeader() {
+  const el = $("#syncbtn");
+  if (!el) return;
+  const on = !!getCfg();
+  el.innerHTML = S.sync === "saving" ? ico("refresh", "spin") + "<span>Speichert</span>"
+    : S.sync === "error" ? ico("alert") + "<span>Fehler</span>"
+    : '<span class="dot" style="background:' + (on ? "var(--em)" : "var(--am)") + '"></span>' +
+      "<span>" + (on ? "Geteilt" : "Lokal") + "</span>";
+  const sub = $("#hsub");
+  if (sub) {
+    const act = S.data.drivers.filter((d) => d.area).length;
+    sub.textContent = act + "/" + S.data.drivers.length +
+      " Fahrer eingeteilt · Stand " + clock(S.lastPull);
+  }
+}
+
+function render() {
+  const root = $("#root");
+  const act = S.data.drivers.filter((d) => d.area).length;
+  root.innerHTML =
+    '<header><div class="wrap">' +
+      '<div class="hrow">' +
+        '<div class="logo">📦</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<h1>Lagerboard</h1>' +
+          '<p class="sub" id="hsub">' + act + "/" + S.data.drivers.length +
+            " Fahrer eingeteilt · Stand " + clock(S.lastPull) + '</p>' +
+        '</div>' +
+        '<button class="btn" id="syncbtn" data-act="refresh"></button>' +
+      '</div>' +
+      '<nav>' + TABS.map((t) =>
+        '<button data-tab="' + t.id + '" class="' + (S.tab === t.id ? "on" : "") + '">' +
+        ico(t.ico) + t.label + "</button>").join("") + '</nav>' +
+    '</div></header>' +
+    '<main><div class="wrap" id="body"></div></main>';
+
+  const b = $("#body");
+  if (S.tab === "apps") b.innerHTML = viewApps();
+  else if (S.tab === "free") b.innerHTML = viewFree();
+  else if (S.tab === "crew") b.innerHTML = viewCrew();
+  else if (S.tab === "proj") b.innerHTML = viewProj();
+  else if (S.tab === "kpi")  b.innerHTML = viewKpi();
+  else b.innerHTML = viewCfg();
+  paintHeader();
+}
+
+/* ---------------- Reiter: Konsolidierungsplätze ---------------- */
+function viewApps() {
+  const all = S.data.apps.reduce((a, x) => a.concat(x.slots), []);
+  const tiles = STATUS.map((s) =>
+    '<div class="tile"><b>' + all.filter((x) => x.status === s.id).length + '</b>' +
+    '<span><i class="dot" style="background:' + s.col + '"></i>' + s.label + "</span></div>").join("");
+
+  const apps = S.data.apps.map((app) =>
+    '<section class="card">' +
+      '<div class="hd">' +
+        '<input class="inl" style="font-weight:600" value="' + esc(app.name) +
+          '" placeholder="Name" data-app="' + app.id + '" data-k="name" />' +
+        '<span class="tiny num" style="background:rgba(255,255,255,.05);padding:2px 8px;border-radius:6px">' +
+          app.slots.length + '</span>' +
+        '<button class="btn dan" data-delapp="' + app.id + '" title="Löschen">' + ico("trash") + '</button>' +
+      '</div>' +
+      '<div class="divide">' + (app.slots.length ? app.slots.map((s) =>
+        '<div class="pad">' +
+          '<div class="row">' +
+            '<i class="dot" style="background:' + STATUS.find((x) => x.id === s.status).col + '"></i>' +
+            '<input class="inl" style="font-weight:500" value="' + esc(s.name) +
+              '" placeholder="Stellplatz" data-slot="' + app.id + "|" + s.id + '" data-k="name" />' +
+            '<button class="iconbtn" data-delslot="' + app.id + "|" + s.id + '">' + ico("x") + '</button>' +
+          '</div>' +
+          '<div class="wrapf" style="margin:8px 0 0 14px">' + STATUS.map((o) =>
+            '<button class="chip ' + (s.status === o.id ? "on" : "") + '" ' +
+            (s.status === o.id ? 'style="border-color:' + o.col + ';background:color-mix(in srgb,' + o.col + ' 15%,transparent);color:' + o.col + '"' : "") +
+            ' data-slotst="' + app.id + "|" + s.id + "|" + o.id + '">' + o.label + "</button>").join("") + '</div>' +
+          '<input class="inl" style="margin-left:14px;width:calc(100% - 14px);color:var(--dim);font-size:14px" ' +
+            'value="' + esc(s.note) + '" placeholder="Notiz…" data-slot="' + app.id + "|" + s.id + '" data-k="note" />' +
+        '</div>').join("") : '<p class="pad muted">Noch keine Stellplätze.</p>') + '</div>' +
+      '<div class="pad" style="border-top:1px solid var(--line)">' +
+        '<button class="btn w" data-addslot="' + app.id + '">' + ico("plus") + 'Stellplatz hinzufügen</button>' +
+      '</div>' +
+    '</section>').join("");
+
+  return '<div class="stack4">' +
+    '<div class="grid4">' + tiles + '</div>' + apps +
+    '<button class="dash" data-act="addapp">' + ico("plus") + 'Konsolidierungsplatz anlegen</button></div>';
+}
+
+/* ---------------- Reiter: Freie Lagerorte ---------------- */
+function viewFree() {
+  const free = S.data.free;
+  const arten = [...new Set(free.map((r) => (r.art || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "de"));
+  const groups = arten.map((a) => ({ art: a, rows: free.filter((r) => (r.art || "").trim() === a) }));
+  if (free.some((r) => !(r.art || "").trim()))
+    groups.push({ art: "Ohne Angabe", rows: free.filter((r) => !(r.art || "").trim()) });
+
+  const totals = {};
+  STATUS.forEach((s) => totals[s.id] = free.filter((r) => (r.status || "frei") === s.id).length);
+
+  const shown = free.filter((r) =>
+    (!S.fArt || (S.fArt === "Ohne Angabe" ? !(r.art || "").trim() : (r.art || "").trim() === S.fArt)) &&
+    (!S.fStatus || (r.status || "frei") === S.fStatus));
+
+  const imported = free.filter((r) => r.src && r.srcAt);
+  let banner = "";
+  if (imported.length) {
+    const last = imported.reduce((a, b) => (b.srcAt > a.srcAt ? b : a));
+    const cnt = imported.filter((r) => r.srcAt === last.srcAt).length;
+    const old = S.now - last.srcAt > STALE_H * 3600000;
+    banner = '<div class="banner ' + (old ? "warn" : "") + '">' +
+      ico(old ? "alert" : "sheet") +
+      '<div style="flex:1;min-width:0">' +
+        '<p style="margin:0;font-size:14px' + (old ? ";color:#fde68a" : "") + '">Tabellenstand ' +
+          stamp(last.srcAt) + ' <span class="tiny">· ' + ago(last.srcAt, S.now) + '</span></p>' +
+        '<p class="tiny" style="margin:2px 0 0">' + cnt + " Zeilen aus " + esc(last.src || "Datei") + '</p>' +
+      '</div>' +
+      (old ? '<p class="tiny" style="color:#fde68a;margin:0">Plätze könnten belegt sein.</p>' : "") +
+      '</div>';
   }
 
-  /* --- Import / Einrichtung --- */
-  return (
-    <div className="space-y-3">
-      {!grid ? (
-        <>
-          <p className="text-sm text-zinc-500">
-            Wochenliste hochladen, dann Spalten zuordnen. Die Auswertung entsteht direkt in der App
-            und ist für alle sichtbar.
-          </p>
-          <button
-            onClick={() => file.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-4 text-sm font-medium text-zinc-400 transition hover:border-cyan-400/50 hover:text-cyan-200"
-          >
-            <Upload className="h-4 w-4" /> Excel-Datei hochladen
-          </button>
-        </>
-      ) : (
-        <section className="rounded-xl border border-cyan-400/30 bg-cyan-400/[0.04]">
-          <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
-            <FileSpreadsheet className="h-4 w-4 shrink-0 text-cyan-300" />
-            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{fname}</span>
-            <Ghost
-              onClick={() => {
-                setGrid(null);
-                setHead([]);
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Ghost>
-          </div>
+  const nonPal = free.filter((r) => !isPal(r.art));
 
-          <div className="space-y-3 p-3">
-            <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
-                Kalenderwoche
-              </span>
-              <Field
-                value={week}
-                placeholder="z. B. 30"
-                onChange={(e) => setWeek(e.target.value)}
-                className="tabular-nums"
-              />
-            </label>
+  const tiles = STATUS.map((s) =>
+    '<button class="tile ' + (S.fStatus === s.id ? "on" : "") + '" data-fstatus="' + s.id + '">' +
+    '<b>' + totals[s.id] + '</b><span><i class="dot" style="background:' + s.col + '"></i>' +
+    s.label + "</span></button>").join("");
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              {[
-                { v: cName, set: setCName, label: "Mitarbeiter", empty: "— wählen —" },
-                { v: cVal, set: setCVal, label: "Menge", empty: "Zeilen zählen" },
-                { v: cCat, set: setCCat, label: "Kategorie (optional)", empty: "— keine —" },
-              ].map((f) => (
-                <label key={f.label} className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
-                    {f.label}
-                  </span>
-                  <select
-                    value={f.v}
-                    onChange={(e) => f.set(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-[15px] outline-none focus:border-cyan-400/60"
-                  >
-                    <option value="" className="bg-zinc-900">
-                      {f.empty}
-                    </option>
-                    {head.map((h, i) => (
-                      <option key={i} value={String(i)} className="bg-zinc-900">
-                        {h}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-            </div>
+  const byArt = groups.length ? '<section class="card"><div class="hd"><span class="up">Plätze nach Art</span></div>' +
+    '<div class="divide">' + groups.map((g) => {
+      const c = {};
+      STATUS.forEach((s) => c[s.id] = g.rows.filter((r) => (r.status || "frei") === s.id).length);
+      return '<button class="pad" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;width:100%;' +
+        'background:' + (S.fArt === g.art ? "rgba(34,211,238,.1)" : "none") + ';border:0;color:var(--fg);text-align:left" ' +
+        'data-fart="' + esc(g.art) + '">' +
+        '<span style="flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+          esc(g.art) + '</span>' +
+        '<span class="num" style="font-size:17px;font-weight:600">' + g.rows.length + '</span>' +
+        '<span class="wrapf">' + STATUS.map((s) =>
+          '<span class="chip num" style="padding:2px 7px' +
+          (c[s.id] ? ";border-color:" + s.col + ";color:" + s.col : "") + '">' +
+          '<i class="dot" style="background:' + (c[s.id] ? s.col : "var(--dim3)") + '"></i> ' + c[s.id] + "</span>").join("") +
+        '</span></button>';
+    }).join("") + '</div></section>' : "";
 
-            {preview ? (
-              <>
-                <div className="overflow-hidden rounded-lg border border-white/10">
-                  <div className="bg-white/[0.04] px-3 py-2 text-xs uppercase tracking-wide text-zinc-500">
-                    Vorschau · {preview.list.length} Mitarbeiter
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {preview.list.slice(0, 5).map((x) => (
-                      <div key={x.name} className="flex items-center gap-2 px-3 py-2 text-sm">
-                        <span className="min-w-0 flex-1 truncate">{x.name}</span>
-                        <span className="tabular-nums text-zinc-400">
-                          {x.sum.toLocaleString("de-DE")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    onSet(preview);
-                    setGrid(null);
-                    setHead([]);
-                  }}
-                  className="w-full rounded-lg bg-cyan-400/15 px-4 py-2.5 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25"
-                >
-                  Auswertung speichern
-                </button>
-              </>
-            ) : (
-              <p className="text-sm text-zinc-500">Spalte für Mitarbeiter wählen.</p>
-            )}
-          </div>
-        </section>
-      )}
+  const rows = shown.map((r) => {
+    const ts = Math.max(r.srcAt || 0, r.editAt || 0);
+    const old = ts && S.now - ts > STALE_H * 3600000;
+    return '<tr>' +
+      '<td><input class="inl num" style="font-weight:500" value="' + esc(r.ort) + '" data-row="' + r.id + '" data-k="ort" /></td>' +
+      '<td><input class="inl" style="color:var(--dim)" value="' + esc(r.art) + '" data-row="' + r.id + '" data-k="art" /></td>' +
+      '<td><span class="wrapf" style="flex-wrap:nowrap">' + STATUS.map((o) =>
+        '<button class="chip" title="' + o.label + '" ' +
+        ((r.status || "frei") === o.id ? 'style="border-color:' + o.col + ';color:' + o.col + '"' : "") +
+        ' data-rowst="' + r.id + "|" + o.id + '">' + o.label[0] + "</button>").join("") + '</span></td>' +
+      '<td><input class="inl" style="color:var(--dim)" value="' + esc(r.kapazitaet) + '" data-row="' + r.id + '" data-k="kapazitaet" /></td>' +
+      '<td><input class="inl" style="color:var(--dim)" value="' + esc(r.bemerkung) + '" data-row="' + r.id + '" data-k="bemerkung" /></td>' +
+      '<td class="tiny num" style="white-space:nowrap;padding:8px 12px' + (old ? ";color:var(--am)" : "") + '" ' +
+        'title="' + stamp(ts) + '">' + (ts ? ago(ts, S.now) : "—") + '</td>' +
+      '<td><button class="iconbtn" data-delrow="' + r.id + '">' + ico("x") + '</button></td></tr>';
+  }).join("");
 
-      {err && (
-        <p className="flex items-start gap-1.5 text-sm text-rose-300">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          {err}
-        </p>
-      )}
-      <input ref={file} type="file" accept=".xlsx,.xls,.csv" onChange={pick} className="hidden" />
-    </div>
-  );
+  return '<div class="stack">' +
+    (S.imp ? impPanel() : '<button class="dash" data-act="pickfree">' + ico("up") + 'Excel-Tabelle einlesen</button>') +
+    banner +
+    '<section class="card pad"><div class="row" style="margin-bottom:8px">' + ico("trash") +
+      '<b style="font-size:15px">Aufräumen</b></div>' +
+      '<p class="muted" style="margin:0 0 10px">Gilt für alle Geräte und ist endgültig.</p>' +
+      '<div class="row" style="gap:8px"><input class="f num" id="pfx" value="65-" placeholder="z. B. 65-" />' +
+      '<button class="btn" data-act="delpfx">Nummernkreis löschen</button></div>' +
+      '<div class="row" style="margin-top:10px"><span class="muted" style="flex:1">' +
+      (nonPal.length ? nonPal.length + " Plätze sind weder Euro- noch Einwegpalettenlager." : "Nur Paletten-Plätze vorhanden.") +
+      '</span>' + (nonPal.length ? '<button class="btn" data-act="delnonpal">Andere Arten entfernen</button>' : "") + '</div>' +
+    '</section>' +
+    '<div class="grid4">' + tiles + '</div>' + byArt +
+    '<div class="row"><span class="muted" style="flex:1">' +
+      (shown.length === free.length ? free.length + " Lagerorte erfasst."
+        : shown.length + " von " + free.length + " gezeigt.") + '</span>' +
+      ((S.fArt || S.fStatus) ? '<button class="btn" data-act="clearf">' + ico("x") + 'Filter zurücksetzen</button>' : "") + '</div>' +
+    '<div class="tblwrap"><table><thead><tr>' +
+      '<th>Lagerort</th><th>Platzart</th><th>Status</th><th>Kapazität</th><th>Bemerkung</th><th>Stand</th><th></th>' +
+      '</tr></thead><tbody>' + (rows || '<tr><td colspan="7" class="muted" style="padding:14px">Keine Lagerorte.</td></tr>') +
+      '</tbody></table></div>' +
+    '<button class="dash" data-act="addrow">' + ico("plus") + 'Zeile hinzufügen</button></div>';
 }
 
-function AreaEditor({ areas, onAdd, onDel }) {
-  const [v, setV] = useState("");
-  const submit = () => {
-    onAdd(v);
-    setV("");
-  };
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-zinc-500">
-        Diese Bereiche stehen bei der Staplerplanung zur Auswahl.
-      </p>
-      <div className="flex gap-2">
-        <Field
-          value={v}
-          placeholder="Neuer Bereich"
-          onChange={(e) => setV(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-        />
-        <button
-          onClick={submit}
-          className="shrink-0 rounded-lg bg-cyan-400/15 px-4 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25"
-        >
-          Hinzufügen
-        </button>
-      </div>
-      <div className="divide-y divide-white/5 rounded-xl border border-white/10">
-        {areas.map((a) => (
-          <div key={a} className="flex items-center gap-2 px-3 py-2.5">
-            <MapPin className="h-4 w-4 shrink-0 text-zinc-600" />
-            <span className="flex-1 text-sm">{a}</span>
-            <button
-              onClick={() => onDel(a)}
-              className="rounded-md p-1.5 text-zinc-600 transition hover:bg-rose-500/10 hover:text-rose-300"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ))}
-        {!areas.length && <p className="px-3 py-4 text-sm text-zinc-600">Keine Bereiche angelegt.</p>}
-      </div>
-    </div>
-  );
+function impPanel() {
+  const i = S.imp;
+  const ready = impRows();
+  return '<section class="card" style="border-color:var(--cyb);background:rgba(34,211,238,.04)">' +
+    '<div class="hd">' + ico("sheet") + '<span class="t">' + esc(i.fname) + '</span>' +
+      '<button class="iconbtn" data-act="impcancel">' + ico("x") + '</button></div>' +
+    '<div class="pad stack">' +
+      (i.sheets.length > 1 ? '<label class="up">Tabellenblatt<select class="f" data-act="impsheet" style="margin-top:4px">' +
+        i.sheets.map((s, n) => '<option value="' + n + '"' + (n === i.si ? " selected" : "") + '>' +
+          esc(s.name) + "</option>").join("") + "</select></label>" : "") +
+      '<button class="btn w" style="justify-content:flex-start" data-act="impskip">' +
+        '<span class="chk ' + (i.skip ? "on" : "") + '">' + ico("check") + '</span>' +
+        'Erste Zeile ist eine Überschrift</button>' +
+      '<button class="btn w" style="justify-content:flex-start" data-act="imppal">' +
+        '<span class="chk ' + (i.pal ? "on" : "") + '">' + ico("check") + '</span>' +
+        'Nur Europaletten- und Einwegpalettenlager</button>' +
+      '<label class="up">Nur diesen Nummernkreis (optional)' +
+        '<input class="f num" id="imponly" value="' + esc(i.only) + '" placeholder="z. B. 64-" style="margin-top:4px" /></label>' +
+      '<div class="tblwrap"><table><thead><tr><th>Lagerort (A)</th><th>Platzart (B)</th></tr></thead><tbody>' +
+        (ready.slice(0, 5).map((r) => '<tr><td style="padding:8px 12px" class="num">' + esc(r.ort || "—") +
+          '</td><td style="padding:8px 12px;color:var(--dim)">' + esc(r.art || "—") + "</td></tr>").join("") ||
+          '<tr><td colspan="2" class="muted" style="padding:12px">Keine Zeilen übrig.</td></tr>') +
+        '</tbody></table></div>' +
+      '<p class="muted" style="margin:0">' + ready.length + " Zeilen erkannt" +
+        (ready.length > 5 ? " (Vorschau zeigt 5)" : "") + ".</p>" +
+      '<div class="row"><button class="btn pri" style="flex:1" data-act="impappend"' +
+        (ready.length ? "" : " disabled") + '>Anhängen</button>' +
+        '<button class="btn" style="flex:1" data-act="impreplace"' +
+        (ready.length ? "" : " disabled") + '>Tabelle ersetzen</button></div>' +
+    '</div></section>';
 }
 
-/* ---------- Sync einrichten ---------- */
+function impRows() {
+  const i = S.imp;
+  if (!i) return [];
+  let g = i.sheets[i.si].grid.map((r) =>
+    ({ ort: String(r[0] == null ? "" : r[0]).trim(), art: String(r[1] == null ? "" : r[1]).trim() }))
+    .filter((r) => r.ort || r.art);
+  if (i.skip) g = g.slice(1);
+  if (i.only.trim()) g = g.filter((r) => r.ort.indexOf(i.only.trim()) === 0);
+  if (i.pal) g = g.filter((r) => isPal(r.art));
+  return g.map((r) => ({ ort: r.ort, art: r.art, kapazitaet: "", bemerkung: "", status: "frei" }));
+}
 
-function SyncSetup() {
-  const cur = getCfg();
-  const [bin, setBin] = useState(cur?.bin || "");
-  const [key, setKey] = useState(cur?.key || "");
-  const [msg, setMsg] = useState("");
-  const on = !!cur;
+/* ---------------- Reiter: Stapler ---------------- */
+function viewCrew() {
+  return '<div class="stack">' + S.data.drivers.map((d) =>
+    '<section class="card pad" style="' + (d.area ? "border-color:var(--cyb)" : "") + '">' +
+      '<div class="row" style="margin-bottom:10px">' +
+        '<span style="color:' + (d.area ? "var(--cy)" : "var(--dim3)") + '">' + ico("truck") + '</span>' +
+        '<input class="inl" style="font-weight:600" value="' + esc(d.name) + '" data-drv="' + d.id + '" data-k="name" />' +
+        '<span class="tiny num">' + clock(d.at) + '</span></div>' +
+      '<div class="wrapf">' +
+        '<button class="chip ' + (!d.area ? "on" : "") + '"' +
+          (!d.area ? ' style="border-color:var(--dim);color:var(--fg)"' : "") +
+          ' data-area="' + d.id + '|">Frei</button>' +
+        S.data.areas.map((a) =>
+          '<button class="chip"' + (d.area === a ? ' style="border-color:var(--cyb);background:var(--cyd);color:#a5f3fc"' : "") +
+          ' data-area="' + d.id + "|" + esc(a) + '">' + esc(a) + "</button>").join("") +
+      '</div>' +
+      '<input class="inl" style="margin-top:8px;color:var(--dim);font-size:14px" value="' + esc(d.note) +
+        '" placeholder="Notiz zum Einsatz…" data-drv="' + d.id + '" data-k="note" />' +
+    '</section>').join("") + '</div>';
+}
 
-  const save = async () => {
-    if (!bin.trim() || !key.trim()) return setMsg("Beide Felder ausfüllen.");
-    setMsg("Wird geprüft…");
-    setCfg({ bin: bin.trim(), key: key.trim() });
+/* ---------------- Reiter: Spezialprojekte ---------------- */
+function viewProj() {
+  const ps = S.data.projects || [];
+  const all = ps.reduce((a, p) => a.concat(p.tasks), []);
+  const done = all.filter((t) => t.done).length;
+  const pct = all.length ? Math.round((done / all.length) * 100) : 0;
+  const people = S.data.drivers.map((d) => d.name);
+
+  const owners = [...new Set(all.map((t) => t.owner).filter(Boolean))].map((o) => ({
+    o, done: all.filter((t) => t.owner === o && t.done).length,
+    open: all.filter((t) => t.owner === o && !t.done).length
+  })).sort((a, b) => (b.done + b.open) - (a.done + a.open));
+  const mx = Math.max(1, ...owners.map((l) => l.done + l.open));
+
+  const head = all.length ? '<section class="card pad">' +
+    '<div class="row" style="align-items:baseline;gap:8px;margin-bottom:8px">' +
+      '<span class="num" style="font-size:30px;font-weight:600">' + pct + '%</span>' +
+      '<span class="muted">' + done + " von " + all.length + " Aufgaben erledigt</span></div>" +
+    '<div class="bar"><i class="' + (pct === 100 ? "done" : "") + '" style="width:' + pct + '%"></i></div>' +
+    (owners.length ? '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">' +
+      '<p class="up" style="margin:0 0 6px">Verteilung</p>' + owners.map((l) =>
+      '<div class="row" style="margin-top:6px">' +
+        '<span class="muted" style="width:96px;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(l.o) + '</span>' +
+        '<span style="flex:1;display:flex;height:16px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.05)">' +
+          '<i style="width:' + (l.done / mx * 100) + '%;background:rgba(52,211,153,.7)"></i>' +
+          '<i style="width:' + (l.open / mx * 100) + '%;background:rgba(34,211,238,.7)"></i></span>' +
+        '<span class="tiny num" style="width:52px;text-align:right">' + l.done + "/" + (l.done + l.open) + "</span></div>").join("") +
+      '<p class="tiny" style="margin:8px 0 0"><i class="dot" style="background:rgba(52,211,153,.7);display:inline-block"></i> erledigt' +
+      ' &nbsp; <i class="dot" style="background:rgba(34,211,238,.7);display:inline-block"></i> offen</p></div>' : "") +
+    '</section>' : "";
+
+  const list = ps.map((p) => {
+    const n = p.tasks.length, d = p.tasks.filter((t) => t.done).length;
+    const pc = n ? Math.round((d / n) * 100) : 0;
+    return '<section class="card">' +
+      '<div class="pad" style="border-bottom:1px solid var(--line)">' +
+        '<div class="row"><input class="inl" style="font-weight:600" value="' + esc(p.title) +
+          '" placeholder="Projektname" data-prj="' + p.id + '" data-k="title" />' +
+          '<button class="btn dan" data-delprj="' + p.id + '">' + ico("trash") + '</button></div>' +
+        '<div class="wrapf" style="margin-top:8px;align-items:center">' +
+          '<select class="f" style="width:auto;padding:6px 30px 6px 10px;font-size:14px" data-prj="' + p.id + '" data-k="owner">' +
+            '<option value="">Verantwortlich —</option>' + people.map((x) =>
+              '<option' + (p.owner === x ? " selected" : "") + '>' + esc(x) + "</option>").join("") + '</select>' +
+          '<input type="date" class="f" style="width:auto;padding:6px 10px;font-size:14px;color-scheme:dark" value="' +
+            esc(p.due) + '" data-prj="' + p.id + '" data-k="due" />' +
+          PRIO.map((o) => '<button class="chip"' +
+            (p.prio === o.id ? ' style="border-color:' + o.col + ';color:' + o.col + '"' : "") +
+            ' data-prjprio="' + p.id + "|" + o.id + '">' + o.label + "</button>").join("") +
+        '</div>' +
+        '<div class="row" style="margin-top:10px"><span class="bar" style="flex:1"><i class="' +
+          (pc === 100 ? "done" : "") + '" style="width:' + pc + '%"></i></span>' +
+          '<span class="tiny num" style="width:72px;text-align:right">' + d + "/" + n + " · " + pc + '%</span></div>' +
+      '</div>' +
+      '<div class="divide">' + (n ? p.tasks.map((t) =>
+        '<div class="row pad" style="padding:8px 12px">' +
+          '<button class="chk ' + (t.done ? "on" : "") + '" data-task="' + p.id + "|" + t.id + '">' + ico("check") + '</button>' +
+          '<input class="inl" style="font-size:14px' + (t.done ? ";color:var(--dim3);text-decoration:line-through" : "") +
+            '" value="' + esc(t.text) + '" placeholder="Aufgabe" data-tsk="' + p.id + "|" + t.id + '" data-k="text" />' +
+          '<select class="f" style="width:110px;flex:0 0 auto;padding:4px 24px 4px 8px;font-size:12px" data-tsk="' +
+            p.id + "|" + t.id + '" data-k="owner"><option value="">—</option>' + people.map((x) =>
+            '<option' + (t.owner === x ? " selected" : "") + '>' + esc(x) + "</option>").join("") + '</select>' +
+          '<button class="iconbtn" data-deltask="' + p.id + "|" + t.id + '">' + ico("x") + '</button></div>').join("")
+        : '<p class="pad muted">Noch keine Aufgaben.</p>') + '</div>' +
+      '<div class="pad" style="border-top:1px solid var(--line)">' +
+        '<button class="btn w" data-addtask="' + p.id + '">' + ico("plus") + 'Aufgabe hinzufügen</button></div>' +
+    '</section>';
+  }).join("");
+
+  return '<div class="stack4">' + head + list +
+    '<button class="dash" data-act="addprj">' + ico("plus") + 'Projekt anlegen</button></div>';
+}
+
+/* ---------------- Reiter: KPI-SF ---------------- */
+function viewKpi() {
+  if (S.kimp) {
+    const i = S.kimp, prev = kpiBuild();
+    const heads = i.sheets[i.si].grid[0] || [];
+    const opts = (sel) => heads.map((h, n) =>
+      '<option value="' + n + '"' + (String(sel) === String(n) ? " selected" : "") + '>' +
+      esc(String(h).trim() || "Spalte " + (n + 1)) + "</option>").join("");
+    return '<section class="card" style="border-color:var(--cyb);background:rgba(34,211,238,.04)">' +
+      '<div class="hd">' + ico("sheet") + '<span class="t">' + esc(i.fname) + '</span>' +
+        '<button class="iconbtn" data-act="kcancel">' + ico("x") + '</button></div>' +
+      '<div class="pad stack">' +
+        (i.sheets.length > 1 ? '<label class="up">Tabellenblatt<select class="f" data-act="ksheet" style="margin-top:4px">' +
+          i.sheets.map((s, n) => '<option value="' + n + '"' + (n === i.si ? " selected" : "") + '>' +
+          esc(s.name) + "</option>").join("") + "</select></label>" : "") +
+        '<label class="up">Kalenderwoche<input class="f num" id="kweek" value="' + esc(i.week) +
+          '" placeholder="z. B. 30" style="margin-top:4px" /></label>' +
+        '<div class="grid3">' +
+          '<label class="up">Mitarbeiter<select class="f" data-act="kname" style="margin-top:4px">' +
+            '<option value="">— wählen —</option>' + opts(i.cName) + '</select></label>' +
+          '<label class="up">Menge<select class="f" data-act="kval" style="margin-top:4px">' +
+            '<option value="">Zeilen zählen</option>' + opts(i.cVal) + '</select></label>' +
+          '<label class="up">Kategorie<select class="f" data-act="kcat" style="margin-top:4px">' +
+            '<option value="">— keine —</option>' + opts(i.cCat) + '</select></label>' +
+        '</div>' +
+        (prev ? '<div class="tblwrap"><table><thead><tr><th>Mitarbeiter</th><th>Summe</th></tr></thead><tbody>' +
+          prev.list.slice(0, 5).map((x) => '<tr><td style="padding:8px 12px">' + esc(x.name) +
+            '</td><td class="num" style="padding:8px 12px;color:var(--dim)">' + de(x.sum) + "</td></tr>").join("") +
+          '</tbody></table></div><p class="muted" style="margin:0">' + prev.list.length + ' Mitarbeiter erkannt.</p>' +
+          '<button class="btn pri w" data-act="ksave">Auswertung speichern</button>'
+          : '<p class="muted" style="margin:0">Spalte für Mitarbeiter wählen.</p>') +
+      '</div></section>';
+  }
+
+  const k = S.data.kpi;
+  if (!k) return '<div class="stack">' +
+    '<p class="muted">Wochenliste hochladen, dann Spalten zuordnen. Die Auswertung entsteht in der App.</p>' +
+    '<button class="dash" data-act="pickkpi">' + ico("up") + 'Excel-Datei hochladen</button></div>';
+
+  const mx = Math.max(1, ...k.list.map((x) => x.sum));
+  const avg = k.list.length ? k.total / k.list.length : 0;
+  return '<div class="stack">' +
+    '<section class="card pad">' +
+      '<div class="row" style="flex-wrap:wrap;align-items:baseline;gap:4px 12px">' +
+        '<b style="font-size:17px">' + (k.week ? "Woche " + esc(k.week) : "Auswertung") + '</b>' +
+        '<span class="muted">' + k.list.length + " Mitarbeiter · " + de(k.total) + " " + esc(k.unit) + "</span></div>" +
+      '<p class="tiny" style="margin:2px 0 0">' + esc(k.file) + " · eingelesen " + stamp(k.at) +
+        " (" + ago(k.at, S.now) + ")</p></section>" +
+    '<section class="card"><div class="hd"><span class="up">Leistung je Mitarbeiter</span></div><div class="divide">' +
+      k.list.map((x, n) => {
+        const cats = Object.keys(x.cats || {});
+        return '<div class="pad">' +
+          '<div class="row" style="margin-bottom:6px">' +
+            '<span class="tiny num" style="width:22px">' + (n + 1) + '.</span>' +
+            '<span style="color:var(--dim3)">' + ico("user") + '</span>' +
+            '<span style="flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+              esc(x.name) + '</span>' +
+            '<span class="num" style="font-weight:600">' + de(x.sum) + '</span>' +
+            '<span class="tiny num" style="width:52px;text-align:right;color:' +
+              (x.sum >= avg ? "var(--em)" : "var(--dim3)") + '">' +
+              (avg ? (x.sum >= avg ? "+" : "") + Math.round((x.sum / avg - 1) * 100) + "%" : "") + '</span></div>' +
+          '<div class="bar"><i style="width:' + (x.sum / mx * 100) + '%"></i></div>' +
+          (cats.length ? '<div class="wrapf" style="margin-top:6px;padding-left:22px">' +
+            cats.sort((a, b) => x.cats[b] - x.cats[a]).map((c) =>
+            '<span class="chip">' + esc(c) + ' <b class="num" style="color:var(--dim)">' + de(x.cats[c]) + "</b></span>").join("") +
+            '</div>' : "") + '</div>';
+      }).join("") + '</div>' +
+      '<div class="row pad" style="border-top:1px solid var(--line)">' +
+        '<span class="muted" style="flex:1">Ø ' + de(Math.round(avg)) + ' pro Mitarbeiter</span>' +
+        '<button class="btn" data-act="pickkpi">' + ico("up") + 'Neue Woche</button>' +
+        '<button class="btn dan" data-act="kclear">' + ico("trash") + '</button></div>' +
+    '</section></div>';
+}
+
+function kpiBuild() {
+  const i = S.kimp;
+  if (!i || i.cName === "") return null;
+  const grid = i.sheets[i.si].grid.slice(1);
+  const heads = i.sheets[i.si].grid[0] || [];
+  const map = {};
+  grid.forEach((r) => {
+    const who = String(r[+i.cName] == null ? "" : r[+i.cName]).trim();
+    if (!who) return;
+    const v = i.cVal === "" ? 1 : num(r[+i.cVal]);
+    const cat = i.cCat === "" ? "" : (String(r[+i.cCat] == null ? "" : r[+i.cCat]).trim() || "Ohne");
+    if (!map[who]) map[who] = { name: who, sum: 0, rows: 0, cats: {} };
+    map[who].sum += v; map[who].rows++;
+    if (cat) map[who].cats[cat] = (map[who].cats[cat] || 0) + v;
+  });
+  const list = Object.keys(map).map((k) => map[k]).sort((a, b) => b.sum - a.sum);
+  if (!list.length) return null;
+  return { week: i.week.trim(), file: i.fname, at: Date.now(),
+    unit: i.cVal === "" ? "Zeilen" : String(heads[+i.cVal] || "").trim() || "Menge",
+    list, total: list.reduce((s, x) => s + x.sum, 0) };
+}
+
+/* ---------------- Reiter: Bereiche + Sync ---------------- */
+function viewCfg() {
+  const c = getCfg();
+  return '<div class="stack4">' +
+    '<section class="card pad stack">' +
+      '<p class="muted" style="margin:0">Diese Bereiche stehen bei der Staplerplanung zur Auswahl.</p>' +
+      '<div class="row"><input class="f" id="newarea" placeholder="Neuer Bereich" />' +
+        '<button class="btn pri" data-act="addarea">Hinzufügen</button></div>' +
+      '<div class="divide" style="border:1px solid var(--line);border-radius:9px">' +
+        (S.data.areas.map((a) => '<div class="row pad" style="padding:9px 12px">' + ico("pin") +
+          '<span style="flex:1">' + esc(a) + '</span>' +
+          '<button class="iconbtn" data-delarea="' + esc(a) + '">' + ico("x") + '</button></div>').join("") ||
+          '<p class="pad muted">Keine Bereiche.</p>') + '</div>' +
+    '</section>' +
+    '<section class="card pad stack">' +
+      '<div class="row">' + ico("refresh") + '<b style="flex:1;font-size:15px">Geräte-Sync</b>' +
+        '<span class="chip" style="border-color:' + (c ? "var(--em)" : "var(--am)") + ';color:' +
+        (c ? "var(--em)" : "var(--am)") + '">' + (c ? "Geteilt" : "Nur dieses Gerät") + "</span></div>" +
+      (c ? '<p class="muted" style="margin:0">Alle Geräte mit denselben Zugangsdaten sehen dieselben Daten.</p>' +
+           '<button class="btn dan" data-act="syncoff">Sync trennen</button>'
+         : '<p class="muted" style="margin:0">Ohne Sync bleiben die Daten nur auf diesem Gerät. Für gemeinsames ' +
+           'Arbeiten ein kostenloses Konto bei jsonbin.io anlegen, dort einen Bin erstellen und beides hier eintragen.</p>' +
+           '<input class="f" id="sbin" placeholder="Bin-ID" />' +
+           '<input class="f" id="skey" type="password" placeholder="Master-Key" />' +
+           '<button class="btn pri w" data-act="syncon">Verbinden</button>') +
+      '<p id="syncmsg" class="muted" style="margin:0"></p>' +
+      '<p class="tiny" style="margin:0;border-top:1px solid var(--line);padding-top:10px">' +
+        'Der Schlüssel wird nur lokal in diesem Browser gespeichert.</p>' +
+    '</section></div>';
+}
+
+/* =========================================================================
+   Ereignisse
+   ========================================================================= */
+const pick = (accept) => new Promise((res) => {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = accept;
+  inp.onchange = () => res(inp.files[0] || null);
+  inp.click();
+});
+
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("button, [data-tab]");
+  if (!t) return;
+  const g = (k) => t.getAttribute(k);
+
+  if (g("data-tab")) { S.tab = g("data-tab"); render(); return; }
+
+  const act = g("data-act");
+  const sp = (v) => (v || "").split("|");
+
+  /* Konsolidierungsplätze */
+  if (act === "addapp") return commit((d) =>
+    d.apps.push({ id: uid(), name: "Konsolidierungsplatz " + (d.apps.length + 1), slots: [] }));
+  if (g("data-delapp")) return commit((d) => d.apps = d.apps.filter((a) => a.id !== g("data-delapp")));
+  if (g("data-addslot")) return commit((d) =>
+    d.apps.find((a) => a.id === g("data-addslot")).slots.push({ id: uid(), name: "", status: "frei", note: "" }));
+  if (g("data-delslot")) { const [a, s] = sp(g("data-delslot"));
+    return commit((d) => { const x = d.apps.find((y) => y.id === a); x.slots = x.slots.filter((y) => y.id !== s); }); }
+  if (g("data-slotst")) { const [a, s, st] = sp(g("data-slotst"));
+    return commit((d) => d.apps.find((y) => y.id === a).slots.find((y) => y.id === s).status = st); }
+
+  /* Lagerorte */
+  if (act === "addrow") return commit((d) => d.free.push({ id: uid(), ort: "", art: "",
+    kapazitaet: "", bemerkung: "", status: "frei", src: "", srcAt: Date.now() }));
+  if (g("data-delrow")) return commit((d) => d.free = d.free.filter((r) => r.id !== g("data-delrow")));
+  if (g("data-rowst")) { const [id, st] = sp(g("data-rowst"));
+    return commit((d) => { const r = d.free.find((x) => x.id === id); r.status = st; r.editAt = Date.now(); }); }
+  if (g("data-fstatus")) { S.fStatus = S.fStatus === g("data-fstatus") ? "" : g("data-fstatus"); return render(); }
+  if (g("data-fart")) { S.fArt = S.fArt === g("data-fart") ? "" : g("data-fart"); return render(); }
+  if (act === "clearf") { S.fArt = S.fStatus = ""; return render(); }
+  if (act === "delpfx") {
+    const p = ($("#pfx").value || "").trim();
+    if (!p) return;
+    const n = S.data.free.filter((r) => String(r.ort || "").trim().indexOf(p) === 0).length;
+    if (!n) return alert("Keine Treffer für " + p);
+    if (!confirm(n + " Lagerorte mit " + p + " wirklich löschen?\nGilt für alle Geräte.")) return;
+    return commit((d) => d.free = d.free.filter((r) => String(r.ort || "").trim().indexOf(p) !== 0));
+  }
+  if (act === "delnonpal") {
+    const n = S.data.free.filter((r) => !isPal(r.art)).length;
+    if (!confirm(n + " Plätze anderer Art wirklich löschen?\nGilt für alle Geräte.")) return;
+    return commit((d) => d.free = d.free.filter((r) => isPal(r.art)));
+  }
+
+  /* Import Lagerorte */
+  if (act === "pickfree") {
+    const f = await pick(".xlsx,.xls,.csv");
+    if (!f) return;
     try {
-      await storage.get(K);
-      setMsg("Verbunden. Seite wird neu geladen…");
-      setTimeout(() => location.reload(), 800);
-    } catch (e) {
-      /* Leerer Bin ist in Ordnung, alles andere nicht */
-      if (String(e.message).includes("leer")) {
-        setMsg("Verbunden. Seite wird neu geladen…");
-        setTimeout(() => location.reload(), 800);
-      } else {
-        setCfg(null);
-        setMsg("Verbindung fehlgeschlagen. Bin-ID und Schlüssel prüfen.");
-      }
-    }
+      const sheets = await readSpreadsheet(f);
+      S.imp = { fname: f.name, sheets, si: 0, skip: true, pal: true, only: "" };
+      render();
+    } catch (err) { alert("Datei konnte nicht gelesen werden.\n" + err.message); }
+    return;
+  }
+  if (act === "impcancel") { S.imp = null; return render(); }
+  if (act === "impskip") { S.imp.skip = !S.imp.skip; S.imp.only = $("#imponly").value; return render(); }
+  if (act === "imppal") { S.imp.pal = !S.imp.pal; S.imp.only = $("#imponly").value; return render(); }
+  if (act === "impappend" || act === "impreplace") {
+    S.imp.only = $("#imponly").value;
+    const rows = impRows(), src = S.imp.fname, mode = act === "impreplace";
+    if (mode && !confirm("Bestehende Tabelle durch " + rows.length + " Zeilen ersetzen?")) return;
+    S.imp = null;
+    return commit((d) => {
+      const at = Date.now();
+      const fresh = rows.map((r) => Object.assign({ id: uid(), src, srcAt: at }, r));
+      d.free = mode ? fresh : d.free.concat(fresh);
+    });
+  }
+
+  /* Stapler */
+  if (g("data-area")) { const [id, a] = sp(g("data-area"));
+    return commit((d) => { const x = d.drivers.find((y) => y.id === id); x.area = a; x.at = Date.now(); }); }
+
+  /* Projekte */
+  if (act === "addprj") return commit((d) => (d.projects = d.projects || []).push(
+    { id: uid(), title: "", owner: "", due: "", prio: "normal", note: "", tasks: [] }));
+  if (g("data-delprj")) return commit((d) => d.projects = d.projects.filter((p) => p.id !== g("data-delprj")));
+  if (g("data-addtask")) return commit((d) =>
+    d.projects.find((p) => p.id === g("data-addtask")).tasks.push({ id: uid(), text: "", owner: "", done: false }));
+  if (g("data-deltask")) { const [p, tt] = sp(g("data-deltask"));
+    return commit((d) => { const x = d.projects.find((y) => y.id === p); x.tasks = x.tasks.filter((y) => y.id !== tt); }); }
+  if (g("data-task")) { const [p, tt] = sp(g("data-task"));
+    return commit((d) => { const x = d.projects.find((y) => y.id === p).tasks.find((y) => y.id === tt); x.done = !x.done; }); }
+  if (g("data-prjprio")) { const [p, pr] = sp(g("data-prjprio"));
+    return commit((d) => d.projects.find((y) => y.id === p).prio = pr); }
+
+  /* KPI */
+  if (act === "pickkpi") {
+    const f = await pick(".xlsx,.xls,.csv");
+    if (!f) return;
+    try {
+      const sheets = await readSpreadsheet(f);
+      S.kimp = { fname: f.name, sheets, si: 0, week: "", cName: "", cVal: "", cCat: "" };
+      render();
+    } catch (err) { alert("Datei konnte nicht gelesen werden.\n" + err.message); }
+    return;
+  }
+  if (act === "kcancel") { S.kimp = null; return render(); }
+  if (act === "ksave") {
+    S.kimp.week = $("#kweek").value;
+    const res = kpiBuild();
+    S.kimp = null;
+    return commit((d) => d.kpi = res);
+  }
+  if (act === "kclear") {
+    if (!confirm("Auswertung löschen?")) return;
+    return commit((d) => d.kpi = null);
+  }
+
+  /* Bereiche */
+  if (act === "addarea") {
+    const v = ($("#newarea").value || "").trim();
+    if (!v || S.data.areas.indexOf(v) > -1) return;
+    return commit((d) => d.areas.push(v));
+  }
+  if (g("data-delarea")) return commit((d) => d.areas = d.areas.filter((a) => a !== g("data-delarea")));
+
+  /* Sync */
+  if (act === "syncon") {
+    const bin = ($("#sbin").value || "").trim(), key = ($("#skey").value || "").trim();
+    if (!bin || !key) { $("#syncmsg").textContent = "Beide Felder ausfüllen."; return; }
+    $("#syncmsg").textContent = "Wird geprüft…";
+    setCfg({ bin, key });
+    try { await store.get(); location.reload(); }
+    catch (err) { setCfg(null); $("#syncmsg").textContent = "Verbindung fehlgeschlagen. Daten prüfen."; }
+    return;
+  }
+  if (act === "syncoff") { if (confirm("Sync trennen?")) { setCfg(null); location.reload(); } return; }
+  if (act === "refresh") { await pull(true); render(); return; }
+});
+
+/* Texteingaben */
+document.addEventListener("input", (e) => {
+  const el = e.target, k = el.getAttribute("data-k");
+  const set = (fn) => {
+    fn(S.data);
+    S.data.rev = (S.data.rev || 0) + 1; S.rev = S.data.rev;
+    S.sync = "saving"; paintHeader();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try { await store.set(S.data); S.sync = "idle"; } catch (x) { S.sync = "error"; }
+      paintHeader();
+    }, 600);
   };
+  const sp = (v) => (v || "").split("|");
 
-  const off = () => {
-    setCfg(null);
-    location.reload();
-  };
+  if (el.getAttribute("data-app")) return set((d) =>
+    d.apps.find((a) => a.id === el.getAttribute("data-app"))[k] = el.value);
+  if (el.getAttribute("data-slot")) { const [a, s] = sp(el.getAttribute("data-slot"));
+    return set((d) => d.apps.find((x) => x.id === a).slots.find((x) => x.id === s)[k] = el.value); }
+  if (el.getAttribute("data-row")) return set((d) => {
+    const r = d.free.find((x) => x.id === el.getAttribute("data-row"));
+    r[k] = el.value; r.editAt = Date.now();
+  });
+  if (el.getAttribute("data-drv")) return set((d) => {
+    const x = d.drivers.find((y) => y.id === el.getAttribute("data-drv"));
+    x[k] = el.value; if (k === "note") x.at = Date.now();
+  });
+  if (el.getAttribute("data-prj")) return set((d) =>
+    d.projects.find((p) => p.id === el.getAttribute("data-prj"))[k] = el.value);
+  if (el.getAttribute("data-tsk")) { const [p, tt] = sp(el.getAttribute("data-tsk"));
+    return set((d) => d.projects.find((x) => x.id === p).tasks.find((x) => x.id === tt)[k] = el.value); }
+});
 
-  return (
-    <section className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
-      <div className="mb-2 flex items-center gap-2">
-        <RefreshCw className="h-4 w-4 shrink-0 text-zinc-500" />
-        <span className="text-[15px] font-semibold">Geräte-Sync</span>
-        <span
-          className={
-            "ml-auto rounded-md border px-2 py-0.5 text-xs " +
-            (on
-              ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
-              : "border-amber-400/30 bg-amber-400/15 text-amber-300")
-          }
-        >
-          {on ? "Geteilt" : "Nur dieses Gerät"}
-        </span>
-      </div>
+/* Auswahlfelder im Import */
+document.addEventListener("change", (e) => {
+  const a = e.target.getAttribute("data-act");
+  if (!a) return;
+  if (a === "impsheet") { S.imp.si = +e.target.value; return render(); }
+  if (a === "ksheet") { S.kimp.si = +e.target.value; S.kimp.cName = S.kimp.cVal = S.kimp.cCat = ""; return render(); }
+  if (a === "kname") { S.kimp.week = $("#kweek").value; S.kimp.cName = e.target.value; return render(); }
+  if (a === "kval")  { S.kimp.week = $("#kweek").value; S.kimp.cVal  = e.target.value; return render(); }
+  if (a === "kcat")  { S.kimp.week = $("#kweek").value; S.kimp.cCat  = e.target.value; return render(); }
+});
 
-      {on ? (
-        <>
-          <p className="mb-2.5 text-sm text-zinc-500">
-            Alle Geräte mit denselben Zugangsdaten sehen dieselben Daten.
-          </p>
-          <Ghost onClick={off} danger>
-            Sync trennen
-          </Ghost>
-        </>
-      ) : (
-        <>
-          <p className="mb-2.5 text-sm text-zinc-500">
-            Ohne Sync bleiben die Daten nur auf diesem Gerät. Für gemeinsames Arbeiten ein
-            kostenloses Konto bei jsonbin.io anlegen, dort einen Bin erstellen und beides hier
-            eintragen — auf jedem Gerät identisch.
-          </p>
-          <div className="space-y-2">
-            <Field value={bin} placeholder="Bin-ID" onChange={(e) => setBin(e.target.value)} />
-            <Field
-              value={key}
-              placeholder="Master-Key"
-              type="password"
-              onChange={(e) => setKey(e.target.value)}
-            />
-            <button
-              onClick={save}
-              className="w-full rounded-lg bg-cyan-400/15 px-4 py-2.5 text-sm font-medium text-cyan-200 ring-1 ring-cyan-400/40 transition hover:bg-cyan-400/25"
-            >
-              Verbinden
-            </button>
-          </div>
-        </>
-      )}
-
-      {msg && <p className="mt-2 text-sm text-zinc-400">{msg}</p>}
-
-      <p className="mt-3 border-t border-white/10 pt-3 text-xs text-zinc-600">
-        Der Schlüssel wird nur lokal in diesem Browser gespeichert. Keine vertraulichen Daten
-        eintragen.
-      </p>
-    </section>
-  );
-}
-
-
-ReactDOM.createRoot(document.getElementById("root")).render(<Lagerboard />);
+/* =========================================================================
+   Start
+   ========================================================================= */
+(async function () {
+  await pull(true);
+  S.loaded = true;
+  render();
+  setInterval(() => { S.now = Date.now(); if (S.tab === "free" || S.tab === "kpi") render(); }, 60000);
+  setInterval(async () => {
+    if (!getCfg()) return;                 /* ohne Sync kein Abgleich nötig */
+    if (S.imp || S.kimp) return;           /* nicht während eines Imports */
+    if (document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName)) return;
+    const before = S.rev;
+    await pull(false);
+    if (S.rev !== before) render();
+  }, 5000);
+})();
 </script>
 </body>
 </html>
