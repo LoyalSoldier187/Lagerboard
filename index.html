@@ -214,6 +214,32 @@ td .inl{padding:8px}
   background:linear-gradient(to right,rgba(240,168,48,.07),rgba(240,168,48,.02))}
 .banner svg{width:16px;height:16px}
 
+/* ---------- Layout-Fläche ---------- */
+.layboard{position:relative;width:100%;aspect-ratio:16/9;min-height:280px;
+  border:1px solid var(--line);border-radius:var(--r2);overflow:hidden;
+  background:
+    linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px) 0 0/100% 5%,
+    linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px) 0 0/5% 100%,
+    linear-gradient(to bottom,var(--surface),var(--bg2));
+  box-shadow:var(--sh);touch-action:none}
+.layhint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--dim3);font-size:13.5px;margin:0;pointer-events:none}
+.lf{position:absolute;border:1px solid var(--line3);border-radius:8px;
+  background:linear-gradient(to bottom,var(--raised),var(--surface2));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:4px 6px;gap:1px;cursor:grab;overflow:hidden;user-select:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);transition:border-color .13s,box-shadow .13s}
+.lf:hover{border-color:var(--dim2)}
+.lf.full{border-color:var(--acc-line);
+  background:linear-gradient(to bottom,#241d10,#191410)}
+.lf.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-dim),0 4px 12px rgba(0,0,0,.5);
+  cursor:grabbing;z-index:5}
+.lf-n{font-size:11.5px;font-weight:600;color:var(--fg);line-height:1.15;text-align:center;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.lf-a{font-size:10.5px;color:var(--acc-txt);line-height:1.15;text-align:center;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+@media(max-width:560px){.layboard{aspect-ratio:4/3}}
+
 .ico{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-3px}
 .hide{display:none}
 .center{min-height:60vh;display:flex;align-items:center;justify-content:center;
@@ -328,7 +354,10 @@ const SVG = {
   sheet:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8"/><path d="M8 17h8"/>',
   alert:'<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
   refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
-  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  stack:'<path d="m12 2 9 4.5-9 4.5-9-4.5L12 2Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17 9 4.5 9-4.5"/>',
+  move:'<path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><path d="M2 12h20"/><path d="M12 2v20"/>'
 };
 const ico = (n, cls) => '<svg class="ico ' + (cls || "") + '" viewBox="0 0 24 24" fill="none" ' +
   'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
@@ -577,6 +606,9 @@ const START = () => ({
   kpi: null,
   schott: [],
   probs: [],
+  layout: [],
+  karton: [],
+  dbag: [],
   rev: 0
 });
 
@@ -589,6 +621,9 @@ const S = {
   fArt: "", fStatus: "",
   fScho: "",
   fProb: "",
+  fKart: "",
+  fDbag: "",
+  laySel: "",
   now: Date.now(),
   lastPull: 0,
   sync: "idle",
@@ -645,6 +680,9 @@ const TABS = [
   { id: "kpi",  label: "KPI-SF",                ico: "chart" },
   { id: "scho", label: "Schott-Umlagerungen",   ico: "sheet" },
   { id: "prob", label: "Probleme",              ico: "alert" },
+  { id: "lay",  label: "Layout",                ico: "grid" },
+  { id: "kart", label: "Kartonagenübersicht",   ico: "stack" },
+  { id: "dbag", label: "DBAG-Umzug",            ico: "move" },
   { id: "cfg",  label: "Bereiche",              ico: "gear" }
 ];
 
@@ -708,6 +746,9 @@ function render() {
   else if (S.tab === "kpi")  inner.innerHTML = viewKpi();
   else if (S.tab === "scho") inner.innerHTML = viewSchott();
   else if (S.tab === "prob") inner.innerHTML = viewProbs();
+  else if (S.tab === "lay")  inner.innerHTML = viewLayout();
+  else if (S.tab === "kart") inner.innerHTML = viewKarton();
+  else if (S.tab === "dbag") inner.innerHTML = viewDbag();
   else inner.innerHTML = viewCfg();
   b.appendChild(inner);
   paintHeader();
@@ -1196,6 +1237,208 @@ function viewProbs() {
     '<button class="dash" data-act="addprob">' + ico("plus") + 'Problem eintragen</button></div>';
 }
 
+/* ---------------- Reiter: Layout ---------------- */
+/* Freie Fläche. Felder werden gesetzt, beschriftet und mit der Maus
+   oder dem Finger verschoben. Position in Prozent, damit es auf jedem
+   Bildschirm gleich aussieht. */
+function viewLayout() {
+  const list = S.data.layout || [];
+  const sel = list.find((f) => f.id === S.laySel);
+  const belegt = list.filter((f) => (f.art || "").trim()).length;
+
+  const fields = list.map((f) =>
+    '<div class="lf' + (f.id === S.laySel ? " on" : "") + ((f.art || "").trim() ? " full" : "") + '" ' +
+      'data-lf="' + f.id + '" ' +
+      'style="left:' + f.x + '%;top:' + f.y + '%;width:' + f.w + '%;height:' + f.h + '%">' +
+      '<span class="lf-n">' + esc(f.name || "—") + '</span>' +
+      ((f.art || "").trim() ? '<span class="lf-a">' + esc(f.art) + '</span>' : "") +
+    '</div>').join("");
+
+  const editor = sel ? '<section class="card">' +
+    '<div class="hd">' + ico("grid") + '<span class="t">Feld bearbeiten</span>' +
+      '<button class="iconbtn" data-act="layclose">' + ico("x") + '</button></div>' +
+    '<div class="pad stack">' +
+      '<label class="up">Beschriftung' +
+        '<input class="f" value="' + esc(sel.name) + '" placeholder="z. B. Reihe A, Gasse 3" ' +
+        'data-lay="' + sel.id + '" data-k="name" style="margin-top:5px" /></label>' +
+      '<label class="up">Artikel an diesem Platz' +
+        '<input class="f" value="' + esc(sel.art) + '" placeholder="Artikelnummer oder Bezeichnung" ' +
+        'data-lay="' + sel.id + '" data-k="art" style="margin-top:5px" /></label>' +
+      '<label class="up">Notiz' +
+        '<input class="f" value="' + esc(sel.note || "") + '" placeholder="optional" ' +
+        'data-lay="' + sel.id + '" data-k="note" style="margin-top:5px" /></label>' +
+      '<div class="row"><span class="up" style="flex:1">Größe</span>' +
+        '<button class="chip" data-laysize="' + sel.id + '|w-">Schmaler</button>' +
+        '<button class="chip" data-laysize="' + sel.id + '|w+">Breiter</button>' +
+        '<button class="chip" data-laysize="' + sel.id + '|h-">Flacher</button>' +
+        '<button class="chip" data-laysize="' + sel.id + '|h+">Höher</button></div>' +
+      '<button class="btn dan w" data-dellay="' + sel.id + '">' + ico("trash") + 'Feld löschen</button>' +
+    '</div></section>' : "";
+
+  const table = list.length ? '<section class="card">' +
+    '<div class="hd">' + ico("sheet") + '<span class="t">Belegung</span>' +
+      '<span class="tiny num">' + belegt + " von " + list.length + '</span></div>' +
+    '<div class="tblwrap" style="border:0;border-radius:0;box-shadow:none">' +
+    '<table><thead><tr><th>Feld</th><th>Artikel</th><th>Notiz</th></tr></thead><tbody>' +
+    list.map((f) => '<tr' + (f.id === S.laySel ? ' style="background:rgba(240,168,48,.07)"' : "") + '>' +
+      '<td style="padding:9px 12px;font-weight:550">' + esc(f.name || "—") + '</td>' +
+      '<td style="padding:9px 12px;color:' + ((f.art || "").trim() ? "var(--fg)" : "var(--dim3)") + '">' +
+        esc(f.art || "frei") + '</td>' +
+      '<td style="padding:9px 12px;color:var(--dim2)">' + esc(f.note || "") + '</td></tr>').join("") +
+    '</tbody></table></div></section>' : "";
+
+  return '<div class="stack">' +
+    '<p class="muted" style="margin:0">Feld setzen, beschriften, Artikel zuordnen. ' +
+      'Felder lassen sich mit der Maus oder dem Finger verschieben.</p>' +
+    '<div class="layboard" id="layboard">' + fields +
+      (list.length ? "" : '<p class="layhint">Noch keine Felder. Unten eines hinzufügen.</p>') +
+    '</div>' +
+    '<button class="dash" data-act="addlay">' + ico("plus") + 'Feld hinzufügen</button>' +
+    editor + table + '</div>';
+}
+
+/* ---------------- Reiter: Kartonagenübersicht ---------------- */
+function viewKarton() {
+  const list = S.data.karton || [];
+  const st = (r) => {
+    const b = num(r.best), m = num(r.min);
+    if (!m) return "ok";
+    if (b <= 0) return "leer";
+    if (b < m) return "kritisch";
+    if (b < m * 1.25) return "knapp";
+    return "ok";
+  };
+  const leer = list.filter((r) => st(r) === "leer").length;
+  const krit = list.filter((r) => st(r) === "kritisch").length;
+  const knapp = list.filter((r) => st(r) === "knapp").length;
+
+  const shown = S.fKart ? list.filter((r) => {
+    const x = st(r);
+    return S.fKart === "warn" ? (x === "leer" || x === "kritisch" || x === "knapp") : x === S.fKart;
+  }) : list;
+
+  const tiles =
+    '<button class="tile ' + (S.fKart === "" ? "on" : "") + '" data-fkart="">' +
+      '<b>' + list.length + '</b><span>Artikel</span></button>' +
+    '<button class="tile ' + (S.fKart === "leer" ? "on" : "") + '" data-fkart="leer">' +
+      '<b>' + leer + '</b><span><i class="dot" style="background:var(--ro)"></i>Leer</span></button>' +
+    '<button class="tile ' + (S.fKart === "kritisch" ? "on" : "") + '" data-fkart="kritisch">' +
+      '<b>' + krit + '</b><span><i class="dot" style="background:var(--am)"></i>Unter Mindest</span></button>' +
+    '<button class="tile ' + (S.fKart === "knapp" ? "on" : "") + '" data-fkart="knapp">' +
+      '<b>' + knapp + '</b><span><i class="dot" style="background:var(--sk)"></i>Knapp</span></button>';
+
+  const COL = { leer: "var(--ro)", kritisch: "var(--am)", knapp: "var(--sk)", ok: "var(--em)" };
+  const TXT = { leer: "Leer", kritisch: "Unter Mindest", knapp: "Knapp", ok: "Bestand ok" };
+
+  const rows = shown.map((r) => {
+    const x = st(r), b = num(r.best), m = num(r.min);
+    const pct = m ? Math.max(0, Math.min(100, (b / (m * 2)) * 100)) : (b > 0 ? 100 : 0);
+    return '<tr>' +
+      '<td style="width:8px;padding:0"><i style="display:block;width:3px;height:38px;' +
+        'background:' + COL[x] + ';border-radius:0 2px 2px 0"></i></td>' +
+      '<td><input class="inl" style="font-weight:550" value="' + esc(r.art) +
+        '" placeholder="Artikel" data-kart="' + r.id + '" data-k="art" /></td>' +
+      '<td style="width:96px"><input class="inl num" style="text-align:right;font-weight:600" value="' +
+        esc(r.best) + '" placeholder="0" inputmode="decimal" data-kart="' + r.id + '" data-k="best" /></td>' +
+      '<td style="width:96px"><input class="inl num" style="text-align:right;color:var(--dim2)" value="' +
+        esc(r.min) + '" placeholder="0" inputmode="decimal" data-kart="' + r.id + '" data-k="min" /></td>' +
+      '<td style="width:120px"><div class="bar" style="height:5px"><i style="width:' + pct + '%;' +
+        'background:' + COL[x] + '"></i></div></td>' +
+      '<td style="width:118px"><span class="chip" style="border-color:' + COL[x] + ';color:' + COL[x] + '">' +
+        TXT[x] + '</span></td>' +
+      '<td><input class="inl" style="color:var(--dim2)" value="' + esc(r.note || "") +
+        '" placeholder="Notiz…" data-kart="' + r.id + '" data-k="note" /></td>' +
+      '<td><button class="iconbtn" data-delkart="' + r.id + '">' + ico("x") + '</button></td></tr>';
+  }).join("");
+
+  return '<div class="stack">' +
+    '<div class="grid4">' + tiles + '</div>' +
+    (leer + krit ? '<div class="banner warn">' + ico("alert") +
+      '<span style="flex:1;font-size:13.5px;color:var(--acc-txt)">' +
+      (leer ? leer + (leer === 1 ? " Artikel ist leer" : " Artikel sind leer") : "") +
+      (leer && krit ? ", " : "") +
+      (krit ? krit + " unter Mindestbestand" : "") + ". Nachschub anfordern." +
+      '</span></div>' : "") +
+    '<div class="row"><span class="muted" style="flex:1">' +
+      (S.fKart ? shown.length + " von " + list.length + " gezeigt"
+               : list.length + " Artikel erfasst") + '</span>' +
+      (S.fKart ? '<button class="btn" data-act="clearkart">' + ico("x") + 'Filter zurücksetzen</button>' : "") +
+    '</div>' +
+    '<div class="tblwrap"><table><thead><tr>' +
+      '<th></th><th>Artikel</th><th style="text-align:right">Bestand</th>' +
+      '<th style="text-align:right">Mindest</th><th>Füllstand</th><th>Status</th><th>Notiz</th><th></th>' +
+      '</tr></thead><tbody>' +
+      (rows || '<tr><td colspan="8" class="muted" style="padding:14px">Noch keine Artikel.</td></tr>') +
+      '</tbody></table></div>' +
+    '<button class="dash" data-act="addkart">' + ico("plus") + 'Artikel hinzufügen</button></div>';
+}
+
+/* ---------------- Reiter: DBAG-Umzug ---------------- */
+const DSTAT = [
+  { id: "offen",   label: "Offen",     col: "var(--dim2)" },
+  { id: "arbeit",  label: "In Arbeit", col: "var(--am)" },
+  { id: "fertig",  label: "Erledigt",  col: "var(--em)" }
+];
+function viewDbag() {
+  const list = S.data.dbag || [];
+  const cnt = (id) => list.filter((r) => (r.status || "offen") === id).length;
+  const done = cnt("fertig");
+  const pct = list.length ? Math.round((done / list.length) * 100) : 0;
+
+  const shown = S.fDbag ? list.filter((r) => (r.status || "offen") === S.fDbag) : list;
+
+  const tiles =
+    '<button class="tile ' + (S.fDbag === "" ? "on" : "") + '" data-fdbag="">' +
+      '<b>' + list.length + '</b><span>Gesamt</span></button>' +
+    DSTAT.map((s) =>
+      '<button class="tile ' + (S.fDbag === s.id ? "on" : "") + '" data-fdbag="' + s.id + '">' +
+      '<b>' + cnt(s.id) + '</b><span><i class="dot" style="background:' + s.col + '"></i>' +
+      s.label + "</span></button>").join("");
+
+  const progress = list.length ? '<section class="card pad">' +
+    '<div class="row" style="align-items:baseline;gap:8px;margin-bottom:9px">' +
+      '<span class="num" style="font-size:26px;font-weight:640;letter-spacing:-.03em">' + pct + '%</span>' +
+      '<span class="muted">' + done + " von " + list.length + " erledigt</span></div>" +
+    '<div class="bar"><i class="' + (pct === 100 ? "done" : "") + '" style="width:' + pct + '%"></i></div>' +
+    '</section>' : "";
+
+  const rows = shown.map((r) => {
+    const s = DSTAT.find((x) => x.id === (r.status || "offen")) || DSTAT[0];
+    return '<tr>' +
+      '<td><input class="inl" style="font-weight:550" value="' + esc(r.art) +
+        '" placeholder="Artikel" data-dbag="' + r.id + '" data-k="art" /></td>' +
+      '<td style="width:80px"><input class="inl num" style="text-align:right" value="' + esc(r.menge) +
+        '" placeholder="0" inputmode="decimal" data-dbag="' + r.id + '" data-k="menge" /></td>' +
+      '<td style="width:130px"><input class="inl num" value="' + esc(r.von) +
+        '" placeholder="von" data-dbag="' + r.id + '" data-k="von" /></td>' +
+      '<td style="width:130px"><input class="inl num" value="' + esc(r.nach) +
+        '" placeholder="nach" data-dbag="' + r.id + '" data-k="nach" /></td>' +
+      '<td style="width:150px"><input type="date" class="inl" style="color-scheme:dark;color:' +
+        (r.datum ? "var(--fg)" : "var(--dim3)") + '" value="' + esc(r.datum) +
+        '" data-dbag="' + r.id + '" data-k="datum" /></td>' +
+      '<td style="width:132px"><button class="chip" style="border-color:' + s.col + ';color:' + s.col +
+        ';cursor:pointer" data-dbagstep="' + r.id + '" title="Weiterschalten">' +
+        '<i class="dot" style="background:' + s.col + '"></i>' + s.label + '</button></td>' +
+      '<td><input class="inl" style="color:var(--dim2)" value="' + esc(r.note || "") +
+        '" placeholder="Notiz…" data-dbag="' + r.id + '" data-k="note" /></td>' +
+      '<td><button class="iconbtn" data-deldbag="' + r.id + '">' + ico("x") + '</button></td></tr>';
+  }).join("");
+
+  return '<div class="stack">' +
+    '<div class="grid4">' + tiles + '</div>' + progress +
+    '<div class="row"><span class="muted" style="flex:1">' +
+      (S.fDbag ? shown.length + " von " + list.length + " gezeigt"
+               : list.length + (list.length === 1 ? " Position erfasst" : " Positionen erfasst")) + '</span>' +
+      (S.fDbag ? '<button class="btn" data-act="cleardbag">' + ico("x") + 'Filter zurücksetzen</button>' : "") +
+    '</div>' +
+    '<div class="tblwrap"><table><thead><tr>' +
+      '<th>Artikel</th><th style="text-align:right">Menge</th><th>Von</th><th>Nach</th>' +
+      '<th>Datum</th><th>Status</th><th>Notiz</th><th></th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="8" class="muted" style="padding:14px">Noch keine Positionen.</td></tr>') +
+      '</tbody></table></div>' +
+    '<button class="dash" data-act="adddbag">' + ico("plus") + 'Position hinzufügen</button></div>';
+}
+
 /* ---------------- Reiter: Bereiche + Sync ---------------- */
 function viewCfg() {
   const c = getCfg();
@@ -1347,6 +1590,50 @@ document.addEventListener("click", async (e) => {
   if (t.hasAttribute("data-fprob")) { S.fProb = g("data-fprob"); return render(); }
   if (act === "clearprob") { S.fProb = ""; return render(); }
 
+  /* Layout */
+  if (act === "addlay") {
+    const id = uid();
+    S.laySel = id;
+    return commit((d) => (d.layout = d.layout || []).push(
+      { id, name: "Feld " + ((d.layout || []).length + 1), art: "", note: "",
+        x: 6, y: 6, w: 20, h: 14 }));
+  }
+  if (g("data-dellay")) {
+    const id = g("data-dellay");
+    if (S.laySel === id) S.laySel = "";
+    return commit((d) => d.layout = d.layout.filter((f) => f.id !== id));
+  }
+  if (act === "layclose") { S.laySel = ""; return render(); }
+  if (g("data-laysize")) {
+    const [id, op] = sp(g("data-laysize"));
+    return commit((d) => {
+      const f = d.layout.find((x) => x.id === id);
+      if (op === "w+") f.w = Math.min(90, f.w + 5);
+      if (op === "w-") f.w = Math.max(8, f.w - 5);
+      if (op === "h+") f.h = Math.min(90, f.h + 4);
+      if (op === "h-") f.h = Math.max(6, f.h - 4);
+    });
+  }
+
+  /* Kartonagen */
+  if (act === "addkart") return commit((d) => (d.karton = d.karton || []).push(
+    { id: uid(), art: "", best: "", min: "", note: "" }));
+  if (g("data-delkart")) return commit((d) => d.karton = d.karton.filter((r) => r.id !== g("data-delkart")));
+  if (t.hasAttribute("data-fkart")) { S.fKart = g("data-fkart"); return render(); }
+  if (act === "clearkart") { S.fKart = ""; return render(); }
+
+  /* DBAG-Umzug */
+  if (act === "adddbag") return commit((d) => (d.dbag = d.dbag || []).unshift(
+    { id: uid(), art: "", menge: "", von: "", nach: "", datum: "", status: "offen", note: "" }));
+  if (g("data-deldbag")) return commit((d) => d.dbag = d.dbag.filter((r) => r.id !== g("data-deldbag")));
+  if (g("data-dbagstep")) return commit((d) => {
+    const r = d.dbag.find((x) => x.id === g("data-dbagstep"));
+    const order = ["offen", "arbeit", "fertig"];
+    r.status = order[(order.indexOf(r.status || "offen") + 1) % 3];
+  });
+  if (t.hasAttribute("data-fdbag")) { S.fDbag = g("data-fdbag"); return render(); }
+  if (act === "cleardbag") { S.fDbag = ""; return render(); }
+
   /* Bereiche */
   if (act === "addarea") {
     const v = ($("#newarea").value || "").trim();
@@ -1368,6 +1655,50 @@ document.addEventListener("click", async (e) => {
   if (act === "syncoff") { if (confirm("Sync trennen?")) { setCfg(null); location.reload(); } return; }
   if (act === "refresh") { await pull(true); render(); return; }
 });
+
+/* ---------- Felder im Layout verschieben (Maus und Finger) ---------- */
+let drag = null;
+
+document.addEventListener("pointerdown", (e) => {
+  const el = e.target.closest ? e.target.closest(".lf") : null;
+  if (!el) return;
+  const board = document.querySelector("#layboard");
+  if (!board) return;
+  const id = el.getAttribute("data-lf");
+  const f = (S.data.layout || []).find((x) => x.id === id);
+  if (!f) return;
+  const b = board.getBoundingClientRect();
+  drag = { id, el, b, moved: false,
+    dx: e.clientX - (b.left + (f.x / 100) * b.width),
+    dy: e.clientY - (b.top + (f.y / 100) * b.height), f };
+  el.setPointerCapture && el.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+
+document.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const { b, f, el } = drag;
+  let x = ((e.clientX - drag.dx - b.left) / b.width) * 100;
+  let y = ((e.clientY - drag.dy - b.top) / b.height) * 100;
+  x = Math.max(0, Math.min(100 - f.w, x));
+  y = Math.max(0, Math.min(100 - f.h, y));
+  if (Math.abs(x - f.x) > 0.3 || Math.abs(y - f.y) > 0.3) drag.moved = true;
+  drag.nx = x; drag.ny = y;
+  el.style.left = x + "%";
+  el.style.top = y + "%";
+});
+
+document.addEventListener("pointerup", () => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (!d.moved) { S.laySel = d.id; return render(); }        /* Tippen = auswählen */
+  commit((s) => {                                            /* Ziehen = Position sichern */
+    const f = s.layout.find((x) => x.id === d.id);
+    f.x = Math.round(d.nx * 10) / 10;
+    f.y = Math.round(d.ny * 10) / 10;
+  });
+});
+document.addEventListener("pointercancel", () => { drag = null; });
 
 /* Texteingaben */
 document.addEventListener("input", (e) => {
@@ -1397,6 +1728,12 @@ document.addEventListener("input", (e) => {
     const x = d.drivers.find((y) => y.id === el.getAttribute("data-drv"));
     x[k] = el.value; if (k === "note") x.at = Date.now();
   });
+  if (el.getAttribute("data-lay")) return set((d) =>
+    d.layout.find((f) => f.id === el.getAttribute("data-lay"))[k] = el.value);
+  if (el.getAttribute("data-dbag")) return set((d) =>
+    d.dbag.find((r) => r.id === el.getAttribute("data-dbag"))[k] = el.value);
+  if (el.getAttribute("data-kart")) return set((d) =>
+    d.karton.find((r) => r.id === el.getAttribute("data-kart"))[k] = el.value);
   if (el.getAttribute("data-prob")) return set((d) =>
     d.probs.find((r) => r.id === el.getAttribute("data-prob"))[k] = el.value);
   if (el.getAttribute("data-scho")) return set((d) =>
@@ -1411,7 +1748,8 @@ document.addEventListener("input", (e) => {
 document.addEventListener("change", (e) => {
   /* Datumsfeld und Auswahlfelder lösen kein input aus -> hier nachziehen */
   const el = e.target;
-  if (el.getAttribute("data-scho") || el.getAttribute("data-prj") || el.getAttribute("data-tsk")) {
+  if (el.getAttribute("data-scho") || el.getAttribute("data-prj") || el.getAttribute("data-tsk") ||
+      el.getAttribute("data-dbag")) {
     el.dispatchEvent(new Event("input", { bubbles: true }));
     setTimeout(render, 0);
     return;
@@ -1436,7 +1774,8 @@ document.addEventListener("change", (e) => {
   setInterval(async () => {
     if (!getCfg()) return;                 /* ohne Sync kein Abgleich nötig */
     if (S.imp || S.kimp) return;           /* nicht während eines Imports */
-    if (document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName)) return;
+    if (drag) return;                      /* nicht während des Verschiebens */
+    if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
     const before = S.rev;
     await pull(false);
     if (S.rev !== before) render();
