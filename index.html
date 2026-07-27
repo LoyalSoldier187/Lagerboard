@@ -523,68 +523,52 @@ async function readSpreadsheet(file) {
 }
 
 /* =========================================================================
-   Speicher
-   Ohne Einrichtung: localStorage (nur dieses Gerät).
-   Mit Sync-Daten: jsonbin.io, alle Geräte sehen dasselbe.
+   Speicher — Supabase
+   Zugangsdaten stehen bewusst offen in der Datei. Der anon-Key darf das,
+   solange in Supabase Row Level Security aktiv ist (haben wir eingerichtet).
+   Trotzdem: keine wirklich vertraulichen Daten eintragen, das Repository
+   ist öffentlich.
    ========================================================================= */
-const KEY = "lagerboard:v1";
-const CFGK = "lagerboard:sync";
-const getCfg = () => { try { return JSON.parse(localStorage.getItem(CFGK) || "null"); } catch (e) { return null; } };
-const setCfg = (c) => c ? localStorage.setItem(CFGK, JSON.stringify(c)) : localStorage.removeItem(CFGK);
+const SB_URL = "https://aywocvyfptlvqtlxpuqb.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5d29jdnlmcHRsdnF0bHhwdXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxMzgxNzgsImV4cCI6MjEwMDcxNDE3OH0.nnicIcm9BUkVUcpHsLO3LscMHsUP9B8CeJQgdyJtjsc";
+const SB_ROW = "lager";   /* fester Datensatz-Schlüssel in der Tabelle "board" */
 
-/* Große Listen passen sonst nicht in das Speicherlimit (100 KB bei jsonbin).
-   Gepackt schrumpfen 3000 Zeilen von rund 540 KB auf etwa 17 KB. */
-const canZip = typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined";
+const KEY = "lagerboard:v1";      /* Ausweichspeicher, falls Supabase nicht erreichbar */
+const sbHeaders = {
+  "apikey": SB_KEY,
+  "Authorization": "Bearer " + SB_KEY,
+  "Content-Type": "application/json"
+};
 
-async function zip(str) {
-  const cs = new CompressionStream("gzip");
-  const stream = new Blob([new TextEncoder().encode(str)]).stream().pipeThrough(cs);
-  const buf = new Uint8Array(await new Response(stream).arrayBuffer());
-  let bin = "";
-  for (let i = 0; i < buf.length; i += 8192)
-    bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
-  return btoa(bin);
-}
-
-async function unzip64(b64) {
-  const bin = atob(b64);
-  const buf = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-  const ds = new DecompressionStream("gzip");
-  const stream = new Blob([buf]).stream().pipeThrough(ds);
-  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
-}
+/* Ob Sync aktiv ist: sobald URL und Key gesetzt sind. */
+const syncOn = () => !!(SB_URL && SB_KEY && SB_URL.indexOf("http") === 0);
 
 const store = {
   async get() {
-    const c = getCfg();
-    if (!c) {
+    if (!syncOn()) {
       const v = localStorage.getItem(KEY);
-      if (v === null) return null;
-      return JSON.parse(v);
+      return v === null ? null : JSON.parse(v);
     }
-    const r = await fetch("https://api.jsonbin.io/v3/b/" + c.bin + "/latest",
-      { headers: { "X-Master-Key": c.key, "X-Bin-Meta": "false" } });
+    const r = await fetch(SB_URL + "/rest/v1/board?id=eq." + SB_ROW + "&select=data",
+      { headers: sbHeaders });
     if (!r.ok) throw new Error("Sync " + r.status);
-    const j = await r.json();
-    if (!j) return null;
-    if (j.gz) return JSON.parse(await unzip64(j.gz));   /* gepackt */
-    if (j.value) return JSON.parse(j.value);            /* alte Fassung */
-    return null;
+    const rows = await r.json();
+    if (!rows.length || !rows[0].data) return null;
+    const d = rows[0].data;
+    /* leeres Startobjekt {} zählt als "noch nichts gespeichert" */
+    return (d && Object.keys(d).length) ? d : null;
   },
   async set(obj) {
-    const c = getCfg(), s = JSON.stringify(obj);
-    if (!c) { localStorage.setItem(KEY, s); return; }
-    const body = canZip ? { gz: await zip(s) } : { value: s };
-    const payload = JSON.stringify(body);
-    if (payload.length > 95000)
-      throw new Error("zu groß (" + Math.round(payload.length / 1024) + " KB)");
-    const r = await fetch("https://api.jsonbin.io/v3/b/" + c.bin, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "X-Master-Key": c.key },
-      body: payload
+    if (!syncOn()) { localStorage.setItem(KEY, JSON.stringify(obj)); return; }
+    const r = await fetch(SB_URL + "/rest/v1/board?id=eq." + SB_ROW, {
+      method: "PATCH",
+      headers: Object.assign({ "Prefer": "return=minimal" }, sbHeaders),
+      body: JSON.stringify({ data: obj })
     });
-    if (!r.ok) throw new Error("Sync " + r.status);
+    if (!r.ok) {
+      const txt = await r.text().catch(() => "");
+      throw new Error("Sync " + r.status + (txt ? " – " + txt.slice(0, 80) : ""));
+    }
   }
 };
 
@@ -689,7 +673,7 @@ const TABS = [
 function paintHeader() {
   const el = $("#syncbtn");
   if (!el) return;
-  const on = !!getCfg();
+  const on = syncOn();
   el.innerHTML = S.sync === "saving" ? ico("refresh", "spin") + "<span>Speichert</span>"
     : S.sync === "error" ? ico("alert") + "<span>Fehler</span>"
     : '<span class="dot" style="background:' + (on ? "var(--em)" : "var(--am)") + '"></span>' +
@@ -1441,7 +1425,7 @@ function viewDbag() {
 
 /* ---------------- Reiter: Bereiche + Sync ---------------- */
 function viewCfg() {
-  const c = getCfg();
+  const on = syncOn();
   return '<div class="stack4">' +
     '<section class="card pad stack">' +
       '<p class="muted" style="margin:0">Diese Bereiche stehen bei der Staplerplanung zur Auswahl.</p>' +
@@ -1454,19 +1438,18 @@ function viewCfg() {
           '<p class="pad muted">Keine Bereiche.</p>') + '</div>' +
     '</section>' +
     '<section class="card pad stack">' +
-      '<div class="row">' + ico("refresh") + '<b style="flex:1;font-size:15px">Geräte-Sync</b>' +
-        '<span class="chip" style="border-color:' + (c ? "var(--em)" : "var(--am)") + ';color:' +
-        (c ? "var(--em)" : "var(--am)") + '">' + (c ? "Geteilt" : "Nur dieses Gerät") + "</span></div>" +
-      (c ? '<p class="muted" style="margin:0">Alle Geräte mit denselben Zugangsdaten sehen dieselben Daten.</p>' +
-           '<button class="btn dan" data-act="syncoff">Sync trennen</button>'
-         : '<p class="muted" style="margin:0">Ohne Sync bleiben die Daten nur auf diesem Gerät. Für gemeinsames ' +
-           'Arbeiten ein kostenloses Konto bei jsonbin.io anlegen, dort einen Bin erstellen und beides hier eintragen.</p>' +
-           '<input class="f" id="sbin" placeholder="Bin-ID" />' +
-           '<input class="f" id="skey" type="password" placeholder="Master-Key" />' +
-           '<button class="btn pri w" data-act="syncon">Verbinden</button>') +
+      '<div class="row">' + ico("refresh") + '<b style="flex:1;font-size:15px">Synchronisierung</b>' +
+        '<span class="chip" style="border-color:' + (on ? "var(--em)" : "var(--am)") + ';color:' +
+        (on ? "var(--em)" : "var(--am)") + '">' + (on ? "Aktiv" : "Nur dieses Gerät") + "</span></div>" +
+      (on ? '<p class="muted" style="margin:0">Alle Geräte teilen sich denselben Datenbestand über Supabase. ' +
+            'Änderungen erscheinen nach wenigen Sekunden auf jedem Gerät.</p>' +
+            '<button class="btn w" data-act="synctest">Verbindung prüfen</button>'
+          : '<p class="muted" style="margin:0">In dieser Datei sind keine Supabase-Zugangsdaten hinterlegt. ' +
+            'Die Daten bleiben nur auf diesem Gerät.</p>') +
       '<p id="syncmsg" class="muted" style="margin:0"></p>' +
       '<p class="tiny" style="margin:0;border-top:1px solid var(--line);padding-top:10px">' +
-        'Der Schlüssel wird nur lokal in diesem Browser gespeichert.</p>' +
+        'Speicherort: Supabase-Projekt aywocvyfptlvqtlxpuqb. Keine vertraulichen Daten eintragen — ' +
+        'das Repository ist öffentlich.</p>' +
     '</section></div>';
 }
 
@@ -1643,16 +1626,17 @@ document.addEventListener("click", async (e) => {
   if (g("data-delarea")) return commit((d) => d.areas = d.areas.filter((a) => a !== g("data-delarea")));
 
   /* Sync */
-  if (act === "syncon") {
-    const bin = ($("#sbin").value || "").trim(), key = ($("#skey").value || "").trim();
-    if (!bin || !key) { $("#syncmsg").textContent = "Beide Felder ausfüllen."; return; }
-    $("#syncmsg").textContent = "Wird geprüft…";
-    setCfg({ bin, key });
-    try { await store.get(); location.reload(); }
-    catch (err) { setCfg(null); $("#syncmsg").textContent = "Verbindung fehlgeschlagen. Daten prüfen."; }
+  if (act === "synctest") {
+    const m = $("#syncmsg");
+    if (m) m.textContent = "Wird geprüft…";
+    try {
+      await store.get();
+      if (m) { m.textContent = "Verbindung in Ordnung."; m.style.color = "var(--em)"; }
+    } catch (err) {
+      if (m) { m.textContent = "Fehler: " + err.message; m.style.color = "var(--ro)"; }
+    }
     return;
   }
-  if (act === "syncoff") { if (confirm("Sync trennen?")) { setCfg(null); location.reload(); } return; }
   if (act === "refresh") { await pull(true); render(); return; }
 });
 
@@ -1772,7 +1756,7 @@ document.addEventListener("change", (e) => {
   render();
   setInterval(() => { S.now = Date.now(); if (S.tab === "free" || S.tab === "kpi") render(); }, 60000);
   setInterval(async () => {
-    if (!getCfg()) return;                 /* ohne Sync kein Abgleich nötig */
+    if (!syncOn()) return;                 /* ohne Sync kein Abgleich nötig */
     if (S.imp || S.kimp) return;           /* nicht während eines Imports */
     if (drag) return;                      /* nicht während des Verschiebens */
     if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
