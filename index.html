@@ -84,6 +84,9 @@ nav button svg{width:15px;height:15px;opacity:.75}
 nav button:hover{color:var(--dim)}
 nav button.on{color:var(--fg);border-bottom-color:var(--acc)}
 nav button.on svg{opacity:1;color:var(--acc)}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;
+  padding:0 5px;margin-left:2px;border-radius:99px;background:var(--ro);color:#fff;
+  font-size:11px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 main{padding:22px 0 110px}
 
 /* ---------- Karten ---------- */
@@ -546,6 +549,24 @@ const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const SB_ROW = "lager";   /* fester Datensatz-Schlüssel in der Tabelle "board" */
 
 const KEY = "lagerboard:v1";      /* Ausweichspeicher, falls Supabase nicht erreichbar */
+
+/* "Wer bin ich" — lokal pro Gerät, damit die Aufgaben-Glocke weiß, wessen
+   neue Aufgaben zu zählen sind. Nicht in Supabase, jedes Gerät eigener Wert. */
+const getMe = () => localStorage.getItem("lagerboard:me") || "";
+const setMe = (n) => n ? localStorage.setItem("lagerboard:me", n) : localStorage.removeItem("lagerboard:me");
+/* Welche Aufgaben-IDs dieses Gerät schon gesehen hat */
+const getSeen = () => { try { return JSON.parse(localStorage.getItem("lagerboard:seen") || "[]"); } catch (e) { return []; } };
+const setSeen = (ids) => localStorage.setItem("lagerboard:seen", JSON.stringify(ids));
+/* Alle aktuell für mich sichtbaren Aufgaben als gesehen markieren */
+function markSeen() {
+  const me = getMe();
+  if (!me) return;
+  const seen = getSeen();
+  (S.data.aufgaben || []).forEach((a) => {
+    if (a.wer === me && seen.indexOf(a.id) === -1) seen.push(a.id);
+  });
+  setSeen(seen);
+}
 const sbHeaders = {
   "apikey": SB_KEY,
   "Authorization": "Bearer " + SB_KEY,
@@ -597,7 +618,7 @@ const START = () => ({
            bemerkung: "", status: "frei", src: "", srcAt: 0 }],
   areas: ["Wareneingang", "Kommissionierung", "Versand", "Blocklager", "Hochregal"],
   drivers: (() => {
-    const namen = ["Ayoub", "Khalid", "Timo", "Abdullah"];
+    const namen = ["Ayoub", "Khalid", "Timo", "Abdullah", "Rene"];
     return Array.from({ length: 10 }, (_, i) =>
       ({ id: uid(), name: namen[i] || "Fahrer " + (i + 1), area: "", note: "", at: 0 }));
   })(),
@@ -608,6 +629,7 @@ const START = () => ({
   layout: [],
   karton: [],
   kbedarf: [],
+  aufgaben: [],
   dbag: [],
   rev: 0
 });
@@ -652,7 +674,7 @@ async function pull(force) {
       }
       /* Einmalige Umbenennung: nur solange der Standardname noch dasteht,
          damit von Hand vergebene Namen nicht überschrieben werden. */
-      const namen = ["Ayoub", "Khalid", "Timo", "Abdullah"];
+      const namen = ["Ayoub", "Khalid", "Timo", "Abdullah", "Rene"];
       let renamed = false;
       namen.forEach((n, i) => {
         if (list[i] && list[i].name === "Fahrer " + (i + 1)) { list[i].name = n; renamed = true; }
@@ -689,10 +711,10 @@ const TABS = [
   { id: "free", label: "Freie Lagerorte",       ico: "pin" },
   { id: "crew", label: "Stapler",               ico: "truck" },
   { id: "proj", label: "Spezialprojekte",       ico: "target" },
+  { id: "auf",  label: "Aufgaben",              ico: "check" },
   { id: "lay",  label: "Layout",                ico: "grid" },
   { id: "kart", label: "Kartonagenübersicht",   ico: "stack" },
-  { id: "dbag", label: "DBAG-Umzug",            ico: "move" },
-  { id: "cfg",  label: "Bereiche",              ico: "gear" }
+  { id: "dbag", label: "DBAG-Umzug",            ico: "move" }
 ];
 
 function paintHeader() {
@@ -730,7 +752,9 @@ function render() {
       '</div>' +
       '<nav>' + TABS.map((t) =>
         '<button data-tab="' + t.id + '" class="' + (S.tab === t.id ? "on" : "") + '">' +
-        ico(t.ico) + t.label + "</button>").join("") + '</nav>' +
+        ico(t.ico) + t.label +
+        (t.id === "auf" && unseenCount() ? '<span class="badge">' + unseenCount() + '</span>' : "") +
+        "</button>").join("") + '</nav>' +
     '</div></header>' +
     '<main><div class="wrap" id="body"></div></main>';
 
@@ -752,9 +776,11 @@ function render() {
   if (S.tab === "kpi")  { S.tab = "crew"; S.crewSub = "kpi"; }
   if (S.tab === "prob") { S.tab = "proj"; S.projSub = "prob"; }
   if (S.tab === "scho") { S.tab = "proj"; S.projSub = "scho"; }
+  if (S.tab === "cfg")  { S.tab = "crew"; S.crewSub = "cfg"; }
   if (S.tab === "free") inner.innerHTML = viewFreeHost();
   else if (S.tab === "crew") inner.innerHTML = viewCrewHost();
   else if (S.tab === "proj") inner.innerHTML = viewProjHost();
+  else if (S.tab === "auf")  inner.innerHTML = viewAufgaben();
   else if (S.tab === "scho") inner.innerHTML = viewSchott();
   else if (S.tab === "prob") inner.innerHTML = viewProbs();
   else if (S.tab === "lay")  inner.innerHTML = viewLayout();
@@ -962,14 +988,15 @@ function impRows() {
 }
 
 /* ---------------- Reiter: Stapler ---------------- */
-/* Wirt für "Stapler" mit Umschalter: Einteilung / KPI-SF */
+/* Wirt für "Stapler" mit Umschalter: Einteilung / KPI-SF / Bereiche */
 function viewCrewHost() {
-  const sub = S.crewSub === "kpi" ? "kpi" : "plan";
+  const sub = ["plan", "kpi", "cfg"].indexOf(S.crewSub) > -1 ? S.crewSub : "plan";
   const seg = '<div class="seg" style="margin-bottom:16px">' +
     '<button class="' + (sub === "plan" ? "on" : "") + '" data-crewsub="plan">' + ico("truck") + 'Einteilung</button>' +
     '<button class="' + (sub === "kpi" ? "on" : "") + '" data-crewsub="kpi">' + ico("chart") + 'KPI-SF</button>' +
+    '<button class="' + (sub === "cfg" ? "on" : "") + '" data-crewsub="cfg">' + ico("gear") + 'Bereiche</button>' +
     '</div>';
-  return seg + (sub === "kpi" ? viewKpi() : viewCrew());
+  return seg + (sub === "kpi" ? viewKpi() : sub === "cfg" ? viewCfg() : viewCrew());
 }
 
 function viewCrew() {
@@ -1002,6 +1029,83 @@ function viewProjHost() {
     '<button class="' + (sub === "scho" ? "on" : "") + '" data-projsub="scho">' + ico("sheet") + 'Schott-Umlagerung</button>' +
     '</div>';
   return seg + (sub === "prob" ? viewProbs() : sub === "scho" ? viewSchott() : viewProj());
+}
+
+/* Anzahl offener, noch nicht gesehener Aufgaben für die eingestellte Person */
+function unseenCount() {
+  const me = getMe();
+  if (!me) return 0;
+  const seen = getSeen();
+  return (S.data.aufgaben || []).filter((a) =>
+    a.wer === me && !a.done && seen.indexOf(a.id) === -1).length;
+}
+
+/* Reiter: Aufgaben — geteilte Liste, jede einem Fahrer zugewiesen.
+   Jedes Gerät merkt sich, wer es ist und welche Aufgaben es schon sah. */
+function viewAufgaben() {
+  const me = getMe();
+  const people = S.data.drivers.map((d) => d.name);
+  const list = S.data.aufgaben || [];
+
+  /* Kopf: Wer bin ich */
+  const ident = '<section class="card pad" style="border-color:var(--acc-line)">' +
+    '<div class="row" style="flex-wrap:wrap;gap:10px">' +
+      ico("user") +
+      '<span style="flex:1;min-width:120px;font-weight:550">' +
+        (me ? "Angemeldet als " + esc(me) : "Wer bist du?") + '</span>' +
+      '<select class="f" style="width:auto;min-width:150px" data-act="setme">' +
+        '<option value="">— Person wählen —</option>' +
+        people.map((n) => '<option' + (me === n ? " selected" : "") + '>' + esc(n) + "</option>").join("") +
+      '</select>' +
+    '</div>' +
+    (me ? '<p class="tiny" style="margin:8px 0 0">Neue Aufgaben für dich erscheinen mit roter Zahl am Reiter. ' +
+          'Sobald du hier bist, gelten sie als gesehen.</p>' : "") +
+    '</section>';
+
+  /* Meine Aufgaben (wenn angemeldet) */
+  let meine = "";
+  if (me) {
+    const mine = list.filter((a) => a.wer === me);
+    const offen = mine.filter((a) => !a.done);
+    meine = '<section class="card">' +
+      '<div class="hd">' + ico("check") + '<span class="t">Meine Aufgaben</span>' +
+        '<span class="tiny num">' + offen.length + " offen</span></div>" +
+      '<div class="divide">' + (mine.length ? mine.map((a) =>
+        '<div class="row pad" style="padding:10px 14px">' +
+          '<button class="chk ' + (a.done ? "on" : "") + '" data-aufdone="' + a.id + '">' + ico("check") + '</button>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-weight:550' + (a.done ? ";text-decoration:line-through;color:var(--dim3)" : "") +
+              '">' + esc(a.text || "—") + '</div>' +
+            (a.note ? '<div class="tiny" style="margin-top:2px">' + esc(a.note) + '</div>' : "") +
+          '</div>' +
+          '<span class="tiny num">' + (a.at ? ago(a.at, S.now) : "") + '</span>' +
+        '</div>').join("") : '<p class="pad muted">Keine Aufgaben für dich.</p>') + '</div></section>';
+  }
+
+  /* Alle Aufgaben verwalten (zuweisen) */
+  const alle = '<section class="card">' +
+    '<div class="hd">' + ico("target") + '<span class="t">Aufgaben zuweisen</span>' +
+      '<span class="tiny num">' + list.filter((a) => !a.done).length + " offen</span></div>" +
+    '<div class="divide">' + (list.length ? list.map((a) =>
+      '<div class="pad" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">' +
+        '<button class="chk ' + (a.done ? "on" : "") + '" data-aufdone="' + a.id + '">' + ico("check") + '</button>' +
+        '<input class="inl" style="flex:1;min-width:140px;font-weight:500' +
+          (a.done ? ";text-decoration:line-through;color:var(--dim3)" : "") + '" value="' + esc(a.text) +
+          '" placeholder="Aufgabe" data-auf="' + a.id + '" data-k="text" />' +
+        '<select class="f" style="width:auto;min-width:130px;padding:6px 30px 6px 10px;font-size:13px" ' +
+          'data-auf="' + a.id + '" data-k="wer">' +
+          '<option value="">— zuweisen —</option>' +
+          people.map((n) => '<option' + (a.wer === n ? " selected" : "") + '>' + esc(n) + "</option>").join("") +
+        '</select>' +
+        '<button class="iconbtn" data-delauf="' + a.id + '">' + ico("x") + '</button>' +
+        '<input class="inl" style="flex-basis:100%;color:var(--dim2);font-size:13px" value="' + esc(a.note || "") +
+          '" placeholder="Notiz (optional)" data-auf="' + a.id + '" data-k="note" />' +
+      '</div>').join("") : '<p class="pad muted">Noch keine Aufgaben.</p>') + '</div>' +
+    '<div class="pad" style="border-top:1px solid var(--line)">' +
+      '<button class="btn w" data-act="addauf">' + ico("plus") + 'Aufgabe hinzufügen</button></div>' +
+    '</section>';
+
+  return '<div class="stack4">' + ident + meine + alle + '</div>';
 }
 
 function viewProj() {
@@ -1471,9 +1575,10 @@ function viewKarton() {
 
 /* ---------------- Reiter: DBAG-Umzug ---------------- */
 const DSTAT = [
-  { id: "offen",   label: "Offen",     col: "var(--dim2)" },
-  { id: "arbeit",  label: "In Arbeit", col: "var(--am)" },
-  { id: "fertig",  label: "Erledigt",  col: "var(--em)" }
+  { id: "offen",   label: "Offen",       col: "var(--dim2)" },
+  { id: "arbeit",  label: "In Arbeit",   col: "var(--am)" },
+  { id: "abhol",   label: "Abholbereit", col: "var(--sk)" },
+  { id: "fertig",  label: "Erledigt",    col: "var(--em)" }
 ];
 function viewDbag() {
   const list = S.data.dbag || [];
@@ -1521,7 +1626,7 @@ function viewDbag() {
   }).join("");
 
   return '<div class="stack">' +
-    '<div class="grid4">' + tiles + '</div>' + progress +
+    '<div class="grid3">' + tiles + '</div>' + progress +
     '<div class="row"><span class="muted" style="flex:1">' +
       (S.fDbag ? shown.length + " von " + list.length + " gezeigt"
                : list.length + (list.length === 1 ? " Position erfasst" : " Positionen erfasst")) + '</span>' +
@@ -1580,7 +1685,12 @@ document.addEventListener("click", async (e) => {
   if (!t) return;
   const g = (k) => t.getAttribute(k);
 
-  if (g("data-tab")) { S.tab = g("data-tab"); render(); return; }
+  if (g("data-tab")) {
+    S.tab = g("data-tab");
+    if (S.tab === "auf") markSeen();      /* beim Öffnen als gesehen merken */
+    render();
+    return;
+  }
 
   const act = g("data-act");
   const sp = (v) => (v || "").split("|");
@@ -1690,6 +1800,14 @@ document.addEventListener("click", async (e) => {
   if (t.hasAttribute("data-projsub")) { S.projSub = g("data-projsub"); return render(); }
   if (t.hasAttribute("data-kartsub")) { S.kartSub = g("data-kartsub"); return render(); }
 
+  /* Aufgaben */
+  if (act === "addauf") return commit((d) => (d.aufgaben = d.aufgaben || []).unshift(
+    { id: uid(), text: "", wer: "", note: "", done: false, at: Date.now() }));
+  if (g("data-delauf")) return commit((d) => d.aufgaben = d.aufgaben.filter((a) => a.id !== g("data-delauf")));
+  if (g("data-aufdone")) return commit((d) => {
+    const a = d.aufgaben.find((x) => x.id === g("data-aufdone")); a.done = !a.done;
+  });
+
   /* Layout */
   if (act === "addlay") {
     const id = uid();
@@ -1738,8 +1856,8 @@ document.addEventListener("click", async (e) => {
   if (g("data-deldbag")) return commit((d) => d.dbag = d.dbag.filter((r) => r.id !== g("data-deldbag")));
   if (g("data-dbagstep")) return commit((d) => {
     const r = d.dbag.find((x) => x.id === g("data-dbagstep"));
-    const order = ["offen", "arbeit", "fertig"];
-    r.status = order[(order.indexOf(r.status || "offen") + 1) % 3];
+    const order = ["offen", "arbeit", "abhol", "fertig"];
+    r.status = order[(order.indexOf(r.status || "offen") + 1) % order.length];
   });
   if (t.hasAttribute("data-fdbag")) { S.fDbag = g("data-fdbag"); return render(); }
   if (act === "cleardbag") { S.fDbag = ""; return render(); }
@@ -1843,6 +1961,8 @@ document.addEventListener("input", (e) => {
     d.layout.find((f) => f.id === el.getAttribute("data-lay"))[k] = el.value);
   if (el.getAttribute("data-dbag")) return set((d) =>
     d.dbag.find((r) => r.id === el.getAttribute("data-dbag"))[k] = el.value);
+  if (el.getAttribute("data-auf")) return set((d) =>
+    d.aufgaben.find((a) => a.id === el.getAttribute("data-auf"))[k] = el.value);
   if (el.getAttribute("data-kbed")) return set((d) =>
     d.kbedarf.find((r) => r.id === el.getAttribute("data-kbed"))[k] = el.value);
   if (el.getAttribute("data-kart")) return set((d) =>
@@ -1862,12 +1982,13 @@ document.addEventListener("change", (e) => {
   /* Datumsfeld und Auswahlfelder lösen kein input aus -> hier nachziehen */
   const el = e.target;
   if (el.getAttribute("data-scho") || el.getAttribute("data-prj") || el.getAttribute("data-tsk") ||
-      el.getAttribute("data-dbag")) {
+      el.getAttribute("data-dbag") || el.getAttribute("data-auf")) {
     el.dispatchEvent(new Event("input", { bubbles: true }));
     setTimeout(render, 0);
     return;
   }
   const a = el.getAttribute("data-act");
+  if (a === "setme") { setMe(el.value); markSeen(); render(); return; }
   if (!a) return;
   if (a === "impsheet") { S.imp.si = +e.target.value; return render(); }
   if (a === "ksheet") { S.kimp.si = +e.target.value; S.kimp.cName = S.kimp.cVal = S.kimp.cCat = ""; return render(); }
