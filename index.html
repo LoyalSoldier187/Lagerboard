@@ -241,6 +241,18 @@ td .inl{padding:8px}
 @media(max-width:560px){.layboard{aspect-ratio:4/3}}
 
 .ico{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-3px}
+
+/* Umschalter innerhalb eines Reiters */
+.seg{display:inline-flex;padding:3px;gap:2px;border:1px solid var(--line2);border-radius:var(--r);
+  background:#0a0d12;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.seg button{border:0;background:none;color:var(--dim2);font:550 13px inherit;
+  padding:7px 15px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:all .14s;white-space:nowrap}
+.seg button svg{width:14px;height:14px;opacity:.8}
+.seg button:hover{color:var(--dim)}
+.seg button.on{background:linear-gradient(to bottom,var(--raised),var(--surface2));
+  color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.seg button.on svg{opacity:1;color:var(--acc)}
 .hide{display:none}
 .center{min-height:60vh;display:flex;align-items:center;justify-content:center;
   color:var(--dim2);gap:9px;font-size:14px}
@@ -608,6 +620,9 @@ const S = {
   fKart: "",
   fDbag: "",
   laySel: "",
+  freeSub: "lager",   /* lager | kons */
+  crewSub: "plan",    /* plan | kpi */
+  projSub: "proj",    /* proj | prob */
   now: Date.now(),
   lastPull: 0,
   sync: "idle",
@@ -657,13 +672,10 @@ function commit(fn) {
    Oberfläche
    ========================================================================= */
 const TABS = [
-  { id: "apps", label: "Konsolidierungsplätze", ico: "box" },
   { id: "free", label: "Freie Lagerorte",       ico: "pin" },
   { id: "crew", label: "Stapler",               ico: "truck" },
   { id: "proj", label: "Spezialprojekte",       ico: "target" },
-  { id: "kpi",  label: "KPI-SF",                ico: "chart" },
   { id: "scho", label: "Schott-Umlagerungen",   ico: "sheet" },
-  { id: "prob", label: "Probleme",              ico: "alert" },
   { id: "lay",  label: "Layout",                ico: "grid" },
   { id: "kart", label: "Kartonagenübersicht",   ico: "stack" },
   { id: "dbag", label: "DBAG-Umzug",            ico: "move" },
@@ -723,11 +735,12 @@ function render() {
       '</p></div></div>';
   } else b.innerHTML = "";
   const inner = document.createElement("div");
-  if (S.tab === "apps") inner.innerHTML = viewApps();
-  else if (S.tab === "free") inner.innerHTML = viewFree();
-  else if (S.tab === "crew") inner.innerHTML = viewCrew();
-  else if (S.tab === "proj") inner.innerHTML = viewProj();
-  else if (S.tab === "kpi")  inner.innerHTML = viewKpi();
+  if (S.tab === "apps") { S.tab = "free"; S.freeSub = "kons"; }
+  if (S.tab === "kpi")  { S.tab = "crew"; S.crewSub = "kpi"; }
+  if (S.tab === "prob") { S.tab = "proj"; S.projSub = "prob"; }
+  if (S.tab === "free") inner.innerHTML = viewFreeHost();
+  else if (S.tab === "crew") inner.innerHTML = viewCrewHost();
+  else if (S.tab === "proj") inner.innerHTML = viewProjHost();
   else if (S.tab === "scho") inner.innerHTML = viewSchott();
   else if (S.tab === "prob") inner.innerHTML = viewProbs();
   else if (S.tab === "lay")  inner.innerHTML = viewLayout();
@@ -739,6 +752,16 @@ function render() {
 }
 
 /* ---------------- Reiter: Konsolidierungsplätze ---------------- */
+/* Wirt für "Freie Lagerorte" mit Umschalter: Lagerorte / Konsolidierung */
+function viewFreeHost() {
+  const sub = S.freeSub === "kons" ? "kons" : "lager";
+  const seg = '<div class="seg" style="margin-bottom:16px">' +
+    '<button class="' + (sub === "lager" ? "on" : "") + '" data-freesub="lager">' + ico("pin") + 'Lagerorte</button>' +
+    '<button class="' + (sub === "kons" ? "on" : "") + '" data-freesub="kons">' + ico("box") + 'Konsolidierung</button>' +
+    '</div>';
+  return seg + (sub === "kons" ? viewApps() : viewFree());
+}
+
 function viewApps() {
   const all = S.data.apps.reduce((a, x) => a.concat(x.slots), []);
   const tiles = STATUS.map((s) =>
@@ -925,6 +948,16 @@ function impRows() {
 }
 
 /* ---------------- Reiter: Stapler ---------------- */
+/* Wirt für "Stapler" mit Umschalter: Einteilung / KPI-SF */
+function viewCrewHost() {
+  const sub = S.crewSub === "kpi" ? "kpi" : "plan";
+  const seg = '<div class="seg" style="margin-bottom:16px">' +
+    '<button class="' + (sub === "plan" ? "on" : "") + '" data-crewsub="plan">' + ico("truck") + 'Einteilung</button>' +
+    '<button class="' + (sub === "kpi" ? "on" : "") + '" data-crewsub="kpi">' + ico("chart") + 'KPI-SF</button>' +
+    '</div>';
+  return seg + (sub === "kpi" ? viewKpi() : viewCrew());
+}
+
 function viewCrew() {
   return '<div class="stack">' + S.data.drivers.map((d) =>
     '<section class="card pad" style="' + (d.area ? "border-color:var(--acc-line)" : "") + '">' +
@@ -946,6 +979,16 @@ function viewCrew() {
 }
 
 /* ---------------- Reiter: Spezialprojekte ---------------- */
+/* Wirt für "Spezialprojekte" mit Umschalter: Projekte / Probleme */
+function viewProjHost() {
+  const sub = S.projSub === "prob" ? "prob" : "proj";
+  const seg = '<div class="seg" style="margin-bottom:16px">' +
+    '<button class="' + (sub === "proj" ? "on" : "") + '" data-projsub="proj">' + ico("target") + 'Projekte</button>' +
+    '<button class="' + (sub === "prob" ? "on" : "") + '" data-projsub="prob">' + ico("alert") + 'Probleme</button>' +
+    '</div>';
+  return seg + (sub === "prob" ? viewProbs() : viewProj());
+}
+
 function viewProj() {
   const ps = S.data.projects || [];
   const all = ps.reduce((a, p) => a.concat(p.tasks), []);
@@ -1573,6 +1616,10 @@ document.addEventListener("click", async (e) => {
   if (t.hasAttribute("data-fprob")) { S.fProb = g("data-fprob"); return render(); }
   if (act === "clearprob") { S.fProb = ""; return render(); }
 
+  if (t.hasAttribute("data-freesub")) { S.freeSub = g("data-freesub"); return render(); }
+  if (t.hasAttribute("data-crewsub")) { S.crewSub = g("data-crewsub"); return render(); }
+  if (t.hasAttribute("data-projsub")) { S.projSub = g("data-projsub"); return render(); }
+
   /* Layout */
   if (act === "addlay") {
     const id = uid();
@@ -1754,7 +1801,7 @@ document.addEventListener("change", (e) => {
   await pull(true);
   S.loaded = true;
   render();
-  setInterval(() => { S.now = Date.now(); if (S.tab === "free" || S.tab === "kpi") render(); }, 60000);
+  setInterval(() => { S.now = Date.now(); if (S.tab === "free" || S.tab === "crew") render(); }, 60000);
   setInterval(async () => {
     if (!syncOn()) return;                 /* ohne Sync kein Abgleich nötig */
     if (S.imp || S.kimp) return;           /* nicht während eines Imports */
