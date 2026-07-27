@@ -596,14 +596,18 @@ const START = () => ({
   free: [{ id: uid(), ort: "A-12-3", art: "Europalettenlager", kapazitaet: "2 Pal",
            bemerkung: "", status: "frei", src: "", srcAt: 0 }],
   areas: ["Wareneingang", "Kommissionierung", "Versand", "Blocklager", "Hochregal"],
-  drivers: Array.from({ length: 10 }, (_, i) =>
-    ({ id: uid(), name: "Fahrer " + (i + 1), area: "", note: "", at: 0 })),
+  drivers: (() => {
+    const namen = ["Ayoub", "Khalid", "Timo", "Abdullah"];
+    return Array.from({ length: 10 }, (_, i) =>
+      ({ id: uid(), name: namen[i] || "Fahrer " + (i + 1), area: "", note: "", at: 0 }));
+  })(),
   projects: [],
   kpi: null,
   schott: [],
   probs: [],
   layout: [],
   karton: [],
+  kbedarf: [],
   dbag: [],
   rev: 0
 });
@@ -618,11 +622,13 @@ const S = {
   fScho: "",
   fProb: "",
   fKart: "",
+  fKbed: "",
   fDbag: "",
   laySel: "",
   freeSub: "lager",   /* lager | kons */
   crewSub: "plan",    /* plan | kpi */
-  projSub: "proj",    /* proj | prob */
+  projSub: "proj",    /* proj | prob | scho */
+  kartSub: "best",    /* best | need */
   now: Date.now(),
   lastPull: 0,
   sync: "idle",
@@ -644,7 +650,15 @@ async function pull(force) {
           list.push({ id: uid(), name: "Fahrer " + (i + 1), area: "", note: "", at: 0 });
         remote.drivers = list;
       }
+      /* Einmalige Umbenennung: nur solange der Standardname noch dasteht,
+         damit von Hand vergebene Namen nicht überschrieben werden. */
+      const namen = ["Ayoub", "Khalid", "Timo", "Abdullah"];
+      let renamed = false;
+      namen.forEach((n, i) => {
+        if (list[i] && list[i].name === "Fahrer " + (i + 1)) { list[i].name = n; renamed = true; }
+      });
       if (force || (remote.rev || 0) > S.rev) { S.rev = remote.rev || 0; S.data = remote; }
+      if (renamed) { store.set(S.data).catch(() => {}); }   /* Umbenennung sichern */
     }
     S.lastPull = Date.now();
     S.sync = "idle";
@@ -675,7 +689,6 @@ const TABS = [
   { id: "free", label: "Freie Lagerorte",       ico: "pin" },
   { id: "crew", label: "Stapler",               ico: "truck" },
   { id: "proj", label: "Spezialprojekte",       ico: "target" },
-  { id: "scho", label: "Schott-Umlagerungen",   ico: "sheet" },
   { id: "lay",  label: "Layout",                ico: "grid" },
   { id: "kart", label: "Kartonagenübersicht",   ico: "stack" },
   { id: "dbag", label: "DBAG-Umzug",            ico: "move" },
@@ -738,13 +751,14 @@ function render() {
   if (S.tab === "apps") { S.tab = "free"; S.freeSub = "kons"; }
   if (S.tab === "kpi")  { S.tab = "crew"; S.crewSub = "kpi"; }
   if (S.tab === "prob") { S.tab = "proj"; S.projSub = "prob"; }
+  if (S.tab === "scho") { S.tab = "proj"; S.projSub = "scho"; }
   if (S.tab === "free") inner.innerHTML = viewFreeHost();
   else if (S.tab === "crew") inner.innerHTML = viewCrewHost();
   else if (S.tab === "proj") inner.innerHTML = viewProjHost();
   else if (S.tab === "scho") inner.innerHTML = viewSchott();
   else if (S.tab === "prob") inner.innerHTML = viewProbs();
   else if (S.tab === "lay")  inner.innerHTML = viewLayout();
-  else if (S.tab === "kart") inner.innerHTML = viewKarton();
+  else if (S.tab === "kart") inner.innerHTML = viewKartHost();
   else if (S.tab === "dbag") inner.innerHTML = viewDbag();
   else inner.innerHTML = viewCfg();
   b.appendChild(inner);
@@ -979,14 +993,15 @@ function viewCrew() {
 }
 
 /* ---------------- Reiter: Spezialprojekte ---------------- */
-/* Wirt für "Spezialprojekte" mit Umschalter: Projekte / Probleme */
+/* Wirt für "Spezialprojekte" mit Umschalter: Projekte / Probleme / Schott */
 function viewProjHost() {
-  const sub = S.projSub === "prob" ? "prob" : "proj";
+  const sub = ["proj", "prob", "scho"].indexOf(S.projSub) > -1 ? S.projSub : "proj";
   const seg = '<div class="seg" style="margin-bottom:16px">' +
     '<button class="' + (sub === "proj" ? "on" : "") + '" data-projsub="proj">' + ico("target") + 'Projekte</button>' +
     '<button class="' + (sub === "prob" ? "on" : "") + '" data-projsub="prob">' + ico("alert") + 'Probleme</button>' +
+    '<button class="' + (sub === "scho" ? "on" : "") + '" data-projsub="scho">' + ico("sheet") + 'Schott-Umlagerung</button>' +
     '</div>';
-  return seg + (sub === "prob" ? viewProbs() : viewProj());
+  return seg + (sub === "prob" ? viewProbs() : sub === "scho" ? viewSchott() : viewProj());
 }
 
 function viewProj() {
@@ -1325,6 +1340,60 @@ function viewLayout() {
 }
 
 /* ---------------- Reiter: Kartonagenübersicht ---------------- */
+/* Wirt für "Kartonagenübersicht" mit Umschalter: Bestand / Benötigte Kartonage */
+function viewKartHost() {
+  const sub = S.kartSub === "need" ? "need" : "best";
+  const seg = '<div class="seg" style="margin-bottom:16px">' +
+    '<button class="' + (sub === "best" ? "on" : "") + '" data-kartsub="best">' + ico("stack") + 'Bestand</button>' +
+    '<button class="' + (sub === "need" ? "on" : "") + '" data-kartsub="need">' + ico("sheet") + 'Benötigte Kartonage</button>' +
+    '</div>';
+  return seg + (sub === "need" ? viewKbedarf() : viewKarton());
+}
+
+/* Benötigte Kartonage: welcher Karton für welchen Artikel bestellt werden muss */
+function viewKbedarf() {
+  const list = S.data.kbedarf || [];
+  const offen = list.filter((r) => !r.ok);
+  const shown = S.fKbed === "offen" ? offen : S.fKbed === "bestellt" ? list.filter((r) => r.ok) : list;
+
+  const tiles =
+    '<button class="tile ' + (S.fKbed === "" ? "on" : "") + '" data-fkbed="">' +
+      '<b>' + list.length + '</b><span>Artikel</span></button>' +
+    '<button class="tile ' + (S.fKbed === "offen" ? "on" : "") + '" data-fkbed="offen">' +
+      '<b>' + offen.length + '</b><span><i class="dot" style="background:var(--am)"></i>Zu bestellen</span></button>' +
+    '<button class="tile ' + (S.fKbed === "bestellt" ? "on" : "") + '" data-fkbed="bestellt">' +
+      '<b>' + (list.length - offen.length) + '</b><span><i class="dot" style="background:var(--em)"></i>Bestellt</span></button>';
+
+  const rows = shown.map((r) =>
+    '<tr' + (r.ok ? ' style="opacity:.55"' : "") + '>' +
+      '<td style="width:44px"><button class="chk ' + (r.ok ? "on" : "") + '" data-kbedok="' + r.id + '" ' +
+        'title="' + (r.ok ? "Wieder offen" : "Als bestellt markieren") + '">' + ico("check") + '</button></td>' +
+      '<td><input class="inl" style="font-weight:550' + (r.ok ? ";text-decoration:line-through;color:var(--dim3)" : "") +
+        '" value="' + esc(r.art) + '" placeholder="Artikel" data-kbed="' + r.id + '" data-k="art" /></td>' +
+      '<td><input class="inl num" value="' + esc(r.karton) +
+        '" placeholder="passender Karton" data-kbed="' + r.id + '" data-k="karton" /></td>' +
+      '<td style="width:96px"><input class="inl num" style="text-align:right" value="' + esc(r.menge) +
+        '" placeholder="0" inputmode="decimal" data-kbed="' + r.id + '" data-k="menge" /></td>' +
+      '<td><input class="inl" style="color:var(--dim2)" value="' + esc(r.note || "") +
+        '" placeholder="Notiz…" data-kbed="' + r.id + '" data-k="note" /></td>' +
+      '<td><button class="iconbtn" data-delkbed="' + r.id + '">' + ico("x") + '</button></td></tr>').join("");
+
+  return '<div class="stack">' +
+    '<p class="muted" style="margin:0">Artikel eintragen und festhalten, welcher Karton dafür bestellt werden muss.</p>' +
+    '<div class="grid3">' + tiles + '</div>' +
+    '<div class="row"><span class="muted" style="flex:1">' +
+      (S.fKbed ? shown.length + " von " + list.length + " gezeigt"
+               : list.length + (list.length === 1 ? " Artikel erfasst" : " Artikel erfasst")) + '</span>' +
+      (S.fKbed ? '<button class="btn" data-act="clearkbed">' + ico("x") + 'Filter zurücksetzen</button>' : "") +
+    '</div>' +
+    '<div class="tblwrap"><table><thead><tr>' +
+      '<th></th><th>Artikel</th><th>Benötigter Karton</th><th style="text-align:right">Menge</th>' +
+      '<th>Notiz</th><th></th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="6" class="muted" style="padding:14px">Noch keine Artikel.</td></tr>') +
+      '</tbody></table></div>' +
+    '<button class="dash" data-act="addkbed">' + ico("plus") + 'Artikel hinzufügen</button></div>';
+}
+
 function viewKarton() {
   const list = S.data.karton || [];
   const st = (r) => {
@@ -1619,6 +1688,7 @@ document.addEventListener("click", async (e) => {
   if (t.hasAttribute("data-freesub")) { S.freeSub = g("data-freesub"); return render(); }
   if (t.hasAttribute("data-crewsub")) { S.crewSub = g("data-crewsub"); return render(); }
   if (t.hasAttribute("data-projsub")) { S.projSub = g("data-projsub"); return render(); }
+  if (t.hasAttribute("data-kartsub")) { S.kartSub = g("data-kartsub"); return render(); }
 
   /* Layout */
   if (act === "addlay") {
@@ -1651,6 +1721,16 @@ document.addEventListener("click", async (e) => {
   if (g("data-delkart")) return commit((d) => d.karton = d.karton.filter((r) => r.id !== g("data-delkart")));
   if (t.hasAttribute("data-fkart")) { S.fKart = g("data-fkart"); return render(); }
   if (act === "clearkart") { S.fKart = ""; return render(); }
+
+  /* Benötigte Kartonage */
+  if (act === "addkbed") return commit((d) => (d.kbedarf = d.kbedarf || []).unshift(
+    { id: uid(), art: "", karton: "", menge: "", ok: false, note: "" }));
+  if (g("data-delkbed")) return commit((d) => d.kbedarf = d.kbedarf.filter((r) => r.id !== g("data-delkbed")));
+  if (g("data-kbedok")) return commit((d) => {
+    const r = d.kbedarf.find((x) => x.id === g("data-kbedok")); r.ok = !r.ok;
+  });
+  if (t.hasAttribute("data-fkbed")) { S.fKbed = g("data-fkbed"); return render(); }
+  if (act === "clearkbed") { S.fKbed = ""; return render(); }
 
   /* DBAG-Umzug */
   if (act === "adddbag") return commit((d) => (d.dbag = d.dbag || []).unshift(
@@ -1763,6 +1843,8 @@ document.addEventListener("input", (e) => {
     d.layout.find((f) => f.id === el.getAttribute("data-lay"))[k] = el.value);
   if (el.getAttribute("data-dbag")) return set((d) =>
     d.dbag.find((r) => r.id === el.getAttribute("data-dbag"))[k] = el.value);
+  if (el.getAttribute("data-kbed")) return set((d) =>
+    d.kbedarf.find((r) => r.id === el.getAttribute("data-kbed"))[k] = el.value);
   if (el.getAttribute("data-kart")) return set((d) =>
     d.karton.find((r) => r.id === el.getAttribute("data-kart"))[k] = el.value);
   if (el.getAttribute("data-prob")) return set((d) =>
